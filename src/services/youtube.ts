@@ -140,3 +140,17 @@ export async function updateVideoThumbnail(videoId: string, thumbnailFile: File,
     throw error;
   }
 }
+
+export async function getAISuggestions(videoId: string, accessToken: string) {
+  const response = await fetch(`https://api.example.com/ai-suggestions/${videoId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch AI suggestions');
+  }
+
+  return response.json();
+}
