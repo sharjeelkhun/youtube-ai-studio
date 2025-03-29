@@ -160,8 +160,8 @@ Return ONLY a JSON object with this structure:
         : videoData.description,
       tags: Array.isArray(optimizedData.tags)
         ? [...new Set(optimizedData.tags
-            .filter(tag => typeof tag === 'string' && (tag as string).trim())
-            .map(tag => (tag as string).trim()))]
+            .filter(tag => typeof tag === 'string' && tag.trim())
+            .map(tag => tag.trim()))]
         : videoData.tags
     };
 
