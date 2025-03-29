@@ -19,7 +19,7 @@ export function Dashboard() {
     {
       enabled: !!accessToken,
       staleTime: 5 * 60 * 1000,
-    }
+    } 
   );
 
   const { data: analytics, isLoading: isLoadingAnalytics, error: analyticsError } = useQuery(
