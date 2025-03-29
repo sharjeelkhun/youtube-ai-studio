@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { getChannelVideos } from '../services/youtube';
 import { getChannelAnalytics } from '../services/analytics';
-import { optimizeVideoMetadata } from '../services/optimization';
 import { useQuery } from 'react-query';
 import { Loader2 } from 'lucide-react';
 import { StatsCard } from './StatsCard';
@@ -31,18 +30,6 @@ export function Dashboard() {
       staleTime: 5 * 60 * 1000,
     }
   );
-
-  const optimizedVideos = videos?.map((video) => {
-    const { optimizedTitle, optimizedDescription } = optimizeVideoMetadata(
-      video.title,
-      video.description
-    );
-    return {
-      ...video,
-      optimizedTitle,
-      optimizedDescription,
-    };
-  });
 
   if (!isAuthenticated) {
     return (
@@ -175,8 +162,8 @@ export function Dashboard() {
       {/* Top Videos Chart */}
       {hasData ? (
         <TopVideosChart
-          videos={optimizedVideos.slice(0, 5).map((video) => ({
-            title: video.optimizedTitle,
+          videos={analytics.analyticsData.slice(0, 5).map((video) => ({
+            title: video.title,
             views: parseInt(video.views || '0'),
           }))}
         />
