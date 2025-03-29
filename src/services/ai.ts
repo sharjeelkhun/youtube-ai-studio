@@ -7,11 +7,14 @@ import { throttle } from '../utils/throttle';
 
 const seoCache = new Map<string, SEOAnalysis>();
 
-export async function analyzeSEO(title: string, description: string, tags: string[]) {
+/**
+ * Analyze SEO for a given video title, description, and tags.
+ */
+export async function analyzeSEO(title: string, description: string, tags: string[]): Promise<SEOAnalysis> {
   const cacheKey = `${title}-${description}-${tags.join(',')}`;
   if (seoCache.has(cacheKey)) {
     console.log('Returning cached SEO analysis');
-    return seoCache.get(cacheKey);
+    return seoCache.get(cacheKey)!;
   }
 
   const { getKey } = useAPIKeyStore.getState();
@@ -32,44 +35,31 @@ export async function analyzeSEO(title: string, description: string, tags: strin
     });
 
     const responseBody = await response.text();
-    console.log('API Response Body:', responseBody); // Debug log
+    console.log('API Response Body:', responseBody);
 
     if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error('Unauthorized: Invalid API key.');
-      } else if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again later.');
-      } else if (response.status === 404) {
-        throw new Error('API endpoint not found. Please check the API URL.');
-      } else {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
-      }
+      handleAPIError(response);
     }
 
-    try {
-      const data = JSON.parse(responseBody);
-      seoCache.set(cacheKey, data);
-      return data;
-    } catch (error) {
-      console.error('Error parsing API response as JSON:', error);
-      throw new Error('Failed to parse API response. Please check the API output.');
-    }
+    const data = JSON.parse(responseBody);
+    seoCache.set(cacheKey, data);
+    return data;
   } catch (error: any) {
     console.error('Error in analyzeSEO:', error.message || error);
     throw new Error(error.message || 'Failed to analyze SEO. Please try again later.');
   }
 }
 
-// Wrap analyzeSEO with throttle to limit requests
-export const throttledAnalyzeSEO = throttle(analyzeSEO, 1000); // Limit to 1 request per second
-
-export async function getOptimizedMetadata(videoData: { 
-  title: string; 
-  description: string; 
+/**
+ * Optimize metadata for a given video.
+ */
+export async function getOptimizedMetadata(videoData: {
+  title: string;
+  description: string;
   tags: string[];
   views: string;
   likes: string;
-}) {
+}): Promise<{ title: string; description: string; tags: string[] }> {
   const { getKey } = useAPIKeyStore.getState();
   const cohereKey = getKey('cohere');
 
@@ -102,7 +92,7 @@ Return ONLY a JSON object with this structure:
     const optimizedData: { title: string; description: string; tags: string[] } = tryParseJson(response, {
       title: '',
       description: '',
-      tags: []
+      tags: [],
     });
 
     if (!optimizedData.title || !optimizedData.description || !Array.isArray(optimizedData.tags)) {
@@ -120,12 +110,15 @@ Return ONLY a JSON object with this structure:
   }
 }
 
+/**
+ * Get video suggestions for improvement.
+ */
 export async function getVideoSuggestions(videoData: {
   title: string;
   description: string;
   views: string;
   likes: string;
-}) {
+}): Promise<string> {
   const { getKey } = useAPIKeyStore.getState();
   const cohereKey = getKey('cohere');
 
@@ -163,3 +156,21 @@ Format each suggestion as a clear, actionable item.`;
     throw new Error(error.message || 'Failed to get video suggestions');
   }
 }
+
+/**
+ * Handle API errors based on response status.
+ */
+function handleAPIError(response: Response): void {
+  if (response.status === 401) {
+    throw new Error('Unauthorized: Invalid API key.');
+  } else if (response.status === 429) {
+    throw new Error('Rate limit exceeded. Please try again later.');
+  } else if (response.status === 404) {
+    throw new Error('API endpoint not found. Please check the API URL.');
+  } else {
+    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+  }
+}
+
+// Wrap analyzeSEO with throttle to limit requests
+export const throttledAnalyzeSEO = throttle(analyzeSEO, 1000); // Limit to 1 request per second
