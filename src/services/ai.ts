@@ -6,105 +6,27 @@ import { tryParseJson } from '../utils/json';
 
 const seoCache = new Map<string, SEOAnalysis>();
 
-export async function analyzeSEO(title: string, description: string, tags: string[]): Promise<SEOAnalysis> {
-  const { getKey } = useAPIKeyStore.getState();
-  const cohereKey = getKey('cohere');
-
-  if (!cohereKey) {
-    console.warn('No Cohere API key configured');
-    throw new Error('Please configure your Cohere API key in Settings');
-  }
-
-  const cacheKey = `${title}-${description}-${tags.join(',')}`;
-  
-  if (seoCache.has(cacheKey)) {
-    return seoCache.get(cacheKey)!;
-  }
-
-  const prompt = `Analyze this YouTube video metadata and provide a detailed SEO analysis with specific scores and suggestions. Return a JSON object with the following structure:
-
-Video Details:
-Title: "${title}"
-Description: "${description}"
-Tags: ${tags.join(', ')}
-
-Analyze the following aspects and provide specific scores (0-100) and actionable suggestions:
-1. Title effectiveness (keywords, length, engagement)
-2. Description quality (detail, keywords, formatting)
-3. Tags relevance and coverage
-4. Overall SEO optimization
-
-Return ONLY a JSON object with this exact structure:
-{
-  "score": number,
-  "titleAnalysis": {
-    "score": number,
-    "suggestions": [string, string, string]
-  },
-  "descriptionAnalysis": {
-    "score": number,
-    "suggestions": [string, string, string]
-  },
-  "tagsAnalysis": {
-    "score": number,
-    "suggestions": [string, string, string]
-  },
-  "overallSuggestions": [string, string, string]
-}`;
-
+export async function analyzeSEO(title: string, description: string, tags: string[]) {
   try {
-    const response = await aiService.generateContent(prompt);
-    const analysis = tryParseJson<SEOAnalysis>(response, {
-      score: 0,
-      titleAnalysis: { score: 0, suggestions: [] },
-      descriptionAnalysis: { score: 0, suggestions: [] },
-      tagsAnalysis: { score: 0, suggestions: [] },
-      overallSuggestions: []
+    const response = await fetch('https://api.cohere.ai/analyze-seo', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${yourCohereApiKey}`, // Replace with your API key
+      },
+      body: JSON.stringify({ title, description, tags }),
     });
-    
-    // Validate and sanitize scores
-    const sanitizedAnalysis: SEOAnalysis = {
-      score: Math.min(100, Math.max(0, Number(analysis.score) || 0)),
-      titleAnalysis: {
-        score: Math.min(100, Math.max(0, Number(analysis.titleAnalysis?.score) || 0)),
-        suggestions: Array.isArray(analysis.titleAnalysis?.suggestions) 
-          ? analysis.titleAnalysis.suggestions
-              .filter(s => typeof s === 'string' && s.trim())
-              .map(s => s.trim())
-              .slice(0, 3)
-          : []
-      },
-      descriptionAnalysis: {
-        score: Math.min(100, Math.max(0, Number(analysis.descriptionAnalysis?.score) || 0)),
-        suggestions: Array.isArray(analysis.descriptionAnalysis?.suggestions)
-          ? analysis.descriptionAnalysis.suggestions
-              .filter(s => typeof s === 'string' && s.trim())
-              .map(s => s.trim())
-              .slice(0, 3)
-          : []
-      },
-      tagsAnalysis: {
-        score: Math.min(100, Math.max(0, Number(analysis.tagsAnalysis?.score) || 0)),
-        suggestions: Array.isArray(analysis.tagsAnalysis?.suggestions)
-          ? analysis.tagsAnalysis.suggestions
-              .filter(s => typeof s === 'string' && s.trim())
-              .map(s => s.trim())
-              .slice(0, 3)
-          : []
-      },
-      overallSuggestions: Array.isArray(analysis.overallSuggestions)
-        ? analysis.overallSuggestions
-            .filter(s => typeof s === 'string' && s.trim())
-            .map(s => s.trim())
-            .slice(0, 3)
-        : []
-    };
 
-    seoCache.set(cacheKey, sanitizedAnalysis);
-    return sanitizedAnalysis;
-  } catch (error: any) {
-    console.error('Error analyzing SEO:', error);
-    throw error;
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('API Response:', data); // Debugging the API response
+    return data;
+  } catch (error) {
+    console.error('Error in analyzeSEO:', error);
+    throw error; // Rethrow the error to be handled by the caller
   }
 }
 

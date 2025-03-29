@@ -37,7 +37,9 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
         return parsedResponse?.analysis?.title?.score ?? null;
       } catch (error) {
         console.error('Error calculating SEO score:', error);
-        toast.error('Failed to analyze SEO. Please try again later.');
+        toast.error(
+          'Failed to analyze SEO. Please check your API key, network connection, or try again later.'
+        );
         return null;
       }
     },
