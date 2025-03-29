@@ -2,9 +2,31 @@ import { useAPIKeyStore } from '../../store/apiKeyStore';
 import { AI_PROVIDERS } from '../../config/aiProviders';
 
 class AIService {
-  private currentProvider: string | null = null;
+  private currentProvider: string = 'cohere';
   private retryCount: number = 0;
   private maxRetries: number = 3;
+
+  getCurrentProvider(): string {
+    return this.currentProvider;
+  }
+
+  setProvider(provider: 'cohere' | 'openai' | 'huggingface'): boolean {
+    try {
+      const { getKey } = useAPIKeyStore.getState();
+      const apiKey = getKey(provider);
+      
+      if (!apiKey) {
+        console.error(`No API key found for ${provider}`);
+        return false;
+      }
+
+      this.currentProvider = provider;
+      return true;
+    } catch (error) {
+      console.error('Error setting provider:', error);
+      return false;
+    }
+  }
 
   async generateContent(prompt: string): Promise<string> {
     const providers = ['cohere', 'openai', 'huggingface'];
@@ -15,11 +37,12 @@ class AIService {
         if (response) return response;
       } catch (error: any) {
         console.error(`Error with ${provider}:`, error);
-        if (!error.message.includes('Rate limit')) {
-          throw error;
+        try {
+          return await this.handleRateLimit(error, provider);
+        } catch (rateLimitError) {
+          console.error('Rate limit handling failed:', rateLimitError);
+          throw rateLimitError;
         }
-        // Continue to next provider if rate limited
-        continue;
       }
     }
     
@@ -107,6 +130,29 @@ class AIService {
 
     const data = await response.json();
     return data[0].generated_text;
+  }
+
+  private async handleRateLimit(error: any, provider: string): Promise<string> {
+    if (error.message.includes('Rate limit') || error.response?.status === 429) {
+      // Try next provider
+      const providers = ['cohere', 'openai', 'huggingface'];
+      const currentIndex = providers.indexOf(provider);
+      const nextProvider = providers[(currentIndex + 1) % providers.length];
+      
+      console.log(`Rate limited on ${provider}, trying ${nextProvider}...`);
+      this.setProvider(nextProvider as 'cohere' | 'openai' | 'huggingface');
+      
+      // Add exponential backoff
+      const backoffTime = Math.min(1000 * Math.pow(2, this.retryCount), 10000);
+      await new Promise(resolve => setTimeout(resolve, backoffTime));
+      this.retryCount++;
+      
+      if (this.retryCount > this.maxRetries) {
+        this.retryCount = 0;
+        throw new Error('Maximum retry attempts reached. Please try again later.');
+      }
+    }
+    throw error;
   }
 }
 

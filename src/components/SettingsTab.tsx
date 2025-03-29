@@ -35,12 +35,20 @@ const aiProviders = [
 
 export function SettingsTab() {
   const { setKey, getKey } = useAPIKeyStore();
-  const [selectedProvider, setSelectedProvider] = useState<string>(aiService.getCurrentProvider() || 'cohere');
+  const [selectedProvider, setSelectedProvider] = useState<string>('cohere'); // Default to cohere
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({
     cohere: getKey('cohere') || '',
     openai: getKey('openai') || '',
     huggingface: getKey('huggingface') || '',
   });
+
+  useEffect(() => {
+    // Initialize with stored provider
+    const provider = aiService.getCurrentProvider();
+    if (provider) {
+      setSelectedProvider(provider);
+    }
+  }, []);
 
   useEffect(() => {
     // Show a toast message if no API key is configured
