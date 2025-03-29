@@ -7,9 +7,6 @@ import { throttle } from '../utils/throttle';
 
 const seoCache = new Map<string, SEOAnalysis>();
 
-/**
- * Analyze SEO for a given video title, description, and tags.
- */
 export async function analyzeSEO(title: string, description: string, tags: string[]): Promise<SEOAnalysis> {
   const cacheKey = `${title}-${description}-${tags.join(',')}`;
   if (seoCache.has(cacheKey)) {
@@ -24,26 +21,70 @@ export async function analyzeSEO(title: string, description: string, tags: strin
     throw new Error('Cohere API key is missing. Please configure it in settings.');
   }
 
+  const prompt = `Analyze this YouTube video content for SEO optimization and provide a detailed analysis.
+Return the analysis as a JSON object with this exact structure:
+{
+  "score": number (0-100),
+  "titleAnalysis": {
+    "score": number (0-100),
+    "suggestions": string[]
+  },
+  "descriptionAnalysis": {
+    "score": number (0-100),
+    "suggestions": string[]
+  },
+  "tagsAnalysis": {
+    "score": number (0-100),
+    "suggestions": string[]
+  },
+  "overallSuggestions": string[]
+}
+
+Content to analyze:
+Title: "${title}"
+Description: "${description}"
+Tags: ${tags.join(', ')}
+
+Provide specific, actionable suggestions for improvement in each category.`;
+
   try {
-    const response = await fetch('https://api.cohere.ai/v1/analyze-seo', {
+    const response = await fetch('https://api.cohere.ai/v1/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${cohereKey}`,
+        'Authorization': `Bearer ${cohereKey}`,
       },
-      body: JSON.stringify({ title, description, tags }),
+      body: JSON.stringify({
+        model: 'command',
+        prompt,
+        max_tokens: 1000,
+        temperature: 0.7,
+        response_format: 'json',
+      }),
     });
-
-    const responseBody = await response.text();
-    console.log('API Response Body:', responseBody); // Debug log
 
     if (!response.ok) {
       handleAPIError(response);
     }
 
-    const data = tryParseJson(responseBody, {}) as SEOAnalysis;
-    if (!data || !data.score || !data.titleAnalysis || !data.descriptionAnalysis || !data.tagsAnalysis || !data.overallSuggestions) {
-      throw new Error('Invalid SEOAnalysis data received from API.');
+    const rawResponse = await response.json();
+    console.log('Raw AI Response:', rawResponse);
+
+    if (!rawResponse.generations?.[0]?.text) {
+      throw new Error('Invalid API response structure');
+    }
+
+    const generatedText = rawResponse.generations[0].text;
+    console.log('Generated Text:', generatedText);
+
+    const data = tryParseJson(generatedText, {}) as SEOAnalysis;
+    
+    if (!data || typeof data.score !== 'number' || 
+        !data.titleAnalysis?.suggestions || 
+        !data.descriptionAnalysis?.suggestions || 
+        !data.tagsAnalysis?.suggestions || 
+        !Array.isArray(data.overallSuggestions)) {
+      throw new Error('Invalid SEO analysis data structure');
     }
 
     seoCache.set(cacheKey, data);
