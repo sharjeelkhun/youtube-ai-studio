@@ -8,10 +8,23 @@ interface SEOAnalysisPanelProps {
 }
 
 export function SEOAnalysisPanel({ analysis }: SEOAnalysisPanelProps) {
+  if (!analysis) {
+    return (
+      <div className="text-center text-gray-500">
+        <p>Loading analysis...</p>
+      </div>
+    );
+  }
+
+  const defaultAnalysis = {
+    score: 0,
+    suggestions: [],
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <SEOScoreIndicator score={analysis.score} size="lg" />
+        <SEOScoreIndicator score={analysis.score || 0} size="lg" />
         <div>
           <h3 className="text-lg font-semibold">Overall SEO Score</h3>
           <p className="text-gray-600">Based on title, description, and tags analysis</p>
@@ -20,9 +33,9 @@ export function SEOAnalysisPanel({ analysis }: SEOAnalysisPanelProps) {
 
       <div className="grid gap-6">
         {[
-          { title: 'Title Analysis', data: analysis.titleAnalysis },
-          { title: 'Description Analysis', data: analysis.descriptionAnalysis },
-          { title: 'Tags Analysis', data: analysis.tagsAnalysis }
+          { title: 'Title Analysis', data: analysis.titleAnalysis || defaultAnalysis },
+          { title: 'Description Analysis', data: analysis.descriptionAnalysis || defaultAnalysis },
+          { title: 'Tags Analysis', data: analysis.tagsAnalysis || defaultAnalysis },
         ].map((section, index) => (
           <motion.div
             key={section.title}
@@ -33,7 +46,7 @@ export function SEOAnalysisPanel({ analysis }: SEOAnalysisPanelProps) {
           >
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-medium">{section.title}</h4>
-              <SEOScoreIndicator score={section.data.score} size="sm" />
+              <SEOScoreIndicator score={section.data.score || 0} size="sm" />
             </div>
             <ul className="space-y-2">
               {section.data.suggestions.map((suggestion, i) => (
@@ -43,7 +56,7 @@ export function SEOAnalysisPanel({ analysis }: SEOAnalysisPanelProps) {
           </motion.div>
         ))}
 
-        {analysis.overallSuggestions.length > 0 && (
+        {analysis.overallSuggestions?.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
