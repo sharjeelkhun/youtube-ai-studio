@@ -41,7 +41,7 @@ export async function analyzeSEO(title: string, description: string, tags: strin
       handleAPIError(response);
     }
 
-    const data = JSON.parse(responseBody);
+    const data = tryParseJson(responseBody, {});
     seoCache.set(cacheKey, data);
     return data;
   } catch (error: any) {
