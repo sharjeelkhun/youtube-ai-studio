@@ -52,6 +52,9 @@ export async function getChannelAnalytics(
   }
 
   try {
+    // Debugging input videos
+    console.log('Input Videos:', videos);
+
     // Split videos into current and previous period
     const now = new Date();
     const rangeStart = new Date(now.getTime() - parseTimeRange(timeRange));
@@ -97,20 +100,10 @@ export async function getChannelAnalytics(
     const likesGrowth = calculateGrowth(previousLikes, currentLikes);
     const videoGrowth = calculateGrowth(previousPeriodVideos.length, currentPeriodVideos.length);
 
-    // Estimate subscriber growth (placeholder logic)
-    const subscriberGrowth = Math.min(
-      Math.max(
-        Number(((viewsGrowth * 0.4) + (likesGrowth * 0.4) + (videoGrowth * 0.2)).toFixed(1)),
-        -100
-      ),
-      100
-    );
-
     // Debugging growth percentages
     console.log('Views Growth:', viewsGrowth);
     console.log('Likes Growth:', likesGrowth);
     console.log('Video Growth:', videoGrowth);
-    console.log('Subscriber Growth:', subscriberGrowth);
 
     // Calculate engagement rate
     const totalViews = currentPeriodVideos.reduce(
@@ -121,7 +114,7 @@ export async function getChannelAnalytics(
 
     return {
       viewsGrowth,
-      subscriberGrowth,
+      subscriberGrowth: 0, // Placeholder logic
       likesGrowth,
       videoGrowth,
       totalLikes: currentLikes,
