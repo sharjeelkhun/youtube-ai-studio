@@ -3,10 +3,17 @@ import toast from 'react-hot-toast';
 import { SEOAnalysis } from '../types/seo';
 import { useAPIKeyStore } from '../store/apiKeyStore';
 import { tryParseJson } from '../utils/json';
+import { throttle } from '../utils/throttle';
 
 const seoCache = new Map<string, SEOAnalysis>();
 
 export async function analyzeSEO(title: string, description: string, tags: string[]) {
+  const cacheKey = `${title}-${description}-${tags.join(',')}`;
+  if (seoCache.has(cacheKey)) {
+    console.log('Returning cached SEO analysis');
+    return seoCache.get(cacheKey);
+  }
+
   const { getKey } = useAPIKeyStore.getState();
   const cohereKey = getKey('cohere');
   console.log('Retrieved Cohere API Key:', cohereKey); // Debug log
@@ -39,6 +46,7 @@ export async function analyzeSEO(title: string, description: string, tags: strin
 
     const data = await response.json();
     console.log('API Response Data:', data); // Debug log
+    seoCache.set(cacheKey, data); // Cache the response
     return data;
   } catch (error: any) {
     console.error('Error in analyzeSEO:', error.message || error);

@@ -4,7 +4,7 @@ import { Edit2, Wand2, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { SEOScoreIndicator } from './video/SEOScoreIndicator';
-import { analyzeSEO } from '../services/ai';
+import { throttledAnalyzeSEO } from '../services/ai';
 import { parseSEOAnalysis } from '../services/seoAnalysis';
 import { useAPIKeyStore } from '../store/apiKeyStore';
 import { useQuery } from 'react-query';
@@ -29,18 +29,18 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
         return null;
       }
       try {
-        const rawResponse = await analyzeSEO(video.title, video.description, video.tags);
-        console.log('Raw Response:', rawResponse); // Debugging the response
-
+        const rawResponse = await throttledAnalyzeSEO(video.title, video.description, video.tags);
         const parsedResponse =
           typeof rawResponse === 'string' ? parseSEOAnalysis(rawResponse) : rawResponse;
 
         return parsedResponse?.analysis?.title?.score ?? null;
-      } catch (error) {
+      } catch (error: any) {
+        if (error.message.includes('Rate limit exceeded')) {
+          toast.error('You are sending too many requests. Please wait and try again.');
+        } else {
+          toast.error('Failed to analyze SEO. Please try again later.');
+        }
         console.error('Error calculating SEO score:', error);
-        toast.error(
-          'Failed to analyze SEO. Please check your API key, network connection, or try again later.'
-        );
         return null;
       }
     },
