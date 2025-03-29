@@ -9,18 +9,9 @@ export interface AnalyticsData {
   analyticsData: VideoData[];
 }
 
-function calculateGrowthPercentage(current: number, previous: number): number {
-  // If both periods have 0, there's no growth (0%)
-  if (current === 0 && previous === 0) return 0;
-  
-  // If previous period was 0 and current has value, it's 100% growth
-  if (previous === 0 && current > 0) return 100;
-  
-  // If current period is 0 and previous had value, it's -100% growth
-  if (current === 0 && previous > 0) return -100;
-  
-  // Normal percentage calculation with 1 decimal place
-  return Number(((current - previous) / Math.abs(previous) * 100).toFixed(1));
+function calculateGrowth(previous: number, current: number): number {
+  if (previous === 0) return current > 0 ? 100 : 0; // Handle division by zero
+  return ((current - previous) / previous) * 100;
 }
 
 export async function getChannelAnalytics(accessToken: string, videos: VideoData[]): Promise<AnalyticsData> {
@@ -81,11 +72,11 @@ export async function getChannelAnalytics(accessToken: string, videos: VideoData
     );
 
     // Calculate growth percentages
-    const viewsGrowth = calculateGrowthPercentage(currentViews, previousViews);
-    const likesGrowth = calculateGrowthPercentage(currentLikes, previousLikes);
-    const videoGrowth = calculateGrowthPercentage(
-      currentPeriodVideos.length,
-      previousPeriodVideos.length
+    const viewsGrowth = calculateGrowth(previousViews, currentViews);
+    const likesGrowth = calculateGrowth(previousLikes, currentLikes);
+    const videoGrowth = calculateGrowth(
+      previousPeriodVideos.length,
+      currentPeriodVideos.length
     );
 
     // Estimate subscriber growth based on engagement metrics
