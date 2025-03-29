@@ -73,17 +73,17 @@ export function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Views Growth"
-          value={`${analytics.viewsGrowth}%`}
+          value={`${analytics.viewsGrowth.toFixed(2)}%`}
           trend={analytics.viewsGrowth >= 0 ? 'up' : 'down'}
         />
         <StatsCard
           title="Subscriber Growth"
-          value={`${analytics.subscriberGrowth}%`}
+          value={`${analytics.subscriberGrowth.toFixed(2)}%`}
           trend={analytics.subscriberGrowth >= 0 ? 'up' : 'down'}
         />
         <StatsCard
           title="Likes Growth"
-          value={`${analytics.likesGrowth}%`}
+          value={`${analytics.likesGrowth.toFixed(2)}%`}
           trend={analytics.likesGrowth >= 0 ? 'up' : 'down'}
         />
         <StatsCard

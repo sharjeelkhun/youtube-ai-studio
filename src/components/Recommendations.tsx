@@ -4,10 +4,14 @@ export function Recommendations({ analytics }: { analytics: any }) {
   const recommendations = [];
 
   if (analytics.viewsGrowth < 0) {
-    recommendations.push('Consider posting more frequently to boost views.');
+    recommendations.push(
+      `Your views have decreased by ${Math.abs(analytics.viewsGrowth.toFixed(2))}%. Consider posting more frequently to boost views.`
+    );
   }
   if (analytics.likesGrowth < 0) {
-    recommendations.push('Engage with your audience to increase likes.');
+    recommendations.push(
+      `Your likes have decreased by ${Math.abs(analytics.likesGrowth.toFixed(2))}%. Engage with your audience to increase likes.`
+    );
   }
 
   return (

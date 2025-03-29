@@ -37,6 +37,14 @@ export function TopVideosChart({ videos }: { videos: { title: string; views: num
         display: true,
         text: 'Top Videos by Views',
       },
+      tooltip: {
+        callbacks: {
+          label: (context: any) => {
+            const value = context.raw;
+            return `Views: ${value.toLocaleString()}`; // Format with commas
+          },
+        },
+      },
     },
   };
 
