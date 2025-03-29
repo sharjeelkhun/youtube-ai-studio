@@ -22,7 +22,7 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   console.log('Retrieved Cohere API Key:', cohereKey); // Debug log
 
   const { data: seoScore, isLoading } = useQuery(
-    ['seo-score', video.id, cohereKey], // Include cohereKey as a dependency
+    ['seo-score', video.id, cohereKey],
     async () => {
       if (!cohereKey) {
         toast.error('Cohere API key is missing. Please configure it in settings.');
@@ -35,19 +35,14 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
 
         return parsedResponse?.analysis?.title?.score ?? null;
       } catch (error: any) {
-        if (error.message.includes('Rate limit exceeded')) {
-          toast.error('You are sending too many requests. Please wait and try again.');
-        } else {
-          toast.error('Failed to analyze SEO. Please try again later.');
-        }
         console.error('Error calculating SEO score:', error);
         return null;
       }
     },
     {
-      enabled: !!cohereKey, // Ensure the query is only enabled when the key is available
-      staleTime: 30 * 60 * 1000, // Cache for 30 minutes
-      cacheTime: 60 * 60 * 1000, // Keep in cache for 1 hour
+      enabled: !!cohereKey,
+      staleTime: 30 * 60 * 1000,
+      cacheTime: 60 * 60 * 1000,
       retry: false,
       refetchOnWindowFocus: false,
     }

@@ -16,31 +16,22 @@ export async function analyzeSEO(title: string, description: string, tags: strin
 
   const { getKey } = useAPIKeyStore.getState();
   const cohereKey = getKey('cohere');
-  console.log('Retrieved Cohere API Key:', cohereKey); // Debug log
 
   if (!cohereKey) {
     throw new Error('Cohere API key is missing. Please configure it in settings.');
   }
 
   try {
-    console.log('Using endpoint for analyzeSEO:', 'https://api.cohere.ai/v1/analyze-seo');
     const response = await fetch('https://api.cohere.ai/v1/analyze-seo', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${cohereKey}`, // Ensure the API key is sent
+        Authorization: `Bearer ${cohereKey}`,
       },
       body: JSON.stringify({ title, description, tags }),
     });
 
-    console.log('API Response Status:', response.status); // Debug log
-    console.log('API Response:', {
-      status: response.status,
-      statusText: response.statusText,
-      url: response.url,
-    });
-
-    const responseBody = await response.text(); // Read the response as text
+    const responseBody = await response.text();
     console.log('API Response Body:', responseBody); // Debug log
 
     if (!response.ok) {
@@ -56,9 +47,8 @@ export async function analyzeSEO(title: string, description: string, tags: strin
     }
 
     try {
-      const data = JSON.parse(responseBody); // Parse the response body as JSON
-      console.log('Parsed API Response Data:', data); // Debug log
-      seoCache.set(cacheKey, data); // Cache the response
+      const data = JSON.parse(responseBody);
+      seoCache.set(cacheKey, data);
       return data;
     } catch (error) {
       console.error('Error parsing API response as JSON:', error);
@@ -109,42 +99,21 @@ Return ONLY a JSON object with this structure:
 
   try {
     const response = await aiService.generateContent(prompt);
-    const optimizedData = tryParseJson(response, {
+    const optimizedData: { title: string; description: string; tags: string[] } = tryParseJson(response, {
       title: '',
       description: '',
       tags: []
     });
-    
-    // Validate and sanitize the optimized data
-    const sanitizedData = {
-      title: typeof optimizedData.title === 'string' && optimizedData.title.trim()
-        ? optimizedData.title.trim()
-        : videoData.title,
-      description: typeof optimizedData.description === 'string' && optimizedData.description.trim()
-        ? optimizedData.description.trim()
-        : videoData.description,
-      tags: Array.isArray(optimizedData.tags)
-        ? [...new Set(
-            (optimizedData.tags as string[]) // Explicitly type as string[]
-              .filter((tag) => typeof tag === 'string' && tag.trim()) // Ensure valid strings
-              .map((tag) => tag.trim()) // Trim whitespace
-          )]
-        : Array.isArray(videoData.tags) // Fallback to videoData.tags if optimizedData.tags is invalid
-        ? videoData.tags
-        : [], // Fallback to an empty array
-    };
 
-    console.log('Optimized Tags:', sanitizedData.tags); // Debug log
-    console.log('Fallback Tags:', videoData.tags); // Debug log
-
-    // Ensure we have meaningful changes
-    if (sanitizedData.title === videoData.title &&
-        sanitizedData.description === videoData.description &&
-        JSON.stringify(sanitizedData.tags.sort()) === JSON.stringify(videoData.tags.sort())) {
-      throw new Error('No meaningful optimization changes generated');
+    if (!optimizedData.title || !optimizedData.description || !Array.isArray(optimizedData.tags)) {
+      throw new Error('Invalid optimized metadata received from AI.');
     }
 
-    return sanitizedData;
+    return {
+      title: optimizedData.title.trim(),
+      description: optimizedData.description.trim(),
+      tags: [...new Set(optimizedData.tags.map((tag) => tag.trim()))],
+    };
   } catch (error: any) {
     console.error('Error optimizing metadata:', error);
     throw new Error(error.message || 'Failed to optimize metadata');
@@ -183,11 +152,11 @@ Format each suggestion as a clear, actionable item.`;
   try {
     const response = await aiService.generateContent(prompt);
     const suggestions = response.trim();
-    
+
     if (suggestions.length < 200) {
       throw new Error('Insufficient suggestions generated');
     }
-    
+
     return suggestions;
   } catch (error: any) {
     console.error('Error getting video suggestions:', error);
