@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { getChannelVideos } from '../services/youtube';
 import { getChannelAnalytics } from '../services/analytics';
@@ -9,6 +9,7 @@ import { PerformanceChart } from './PerformanceChart';
 
 export function Dashboard() {
   const { accessToken, isAuthenticated } = useAuthStore();
+  const [timeRange, setTimeRange] = useState('3m'); // Default to 3 months
 
   const { data: videos, isLoading: isLoadingVideos } = useQuery(
     ['videos', accessToken],
@@ -20,8 +21,8 @@ export function Dashboard() {
   );
 
   const { data: analytics, isLoading: isLoadingAnalytics } = useQuery(
-    ['analytics', videos],
-    () => getChannelAnalytics(accessToken!, videos!),
+    ['analytics', videos, timeRange],
+    () => getChannelAnalytics(accessToken!, videos!, timeRange),
     {
       enabled: !!videos,
       staleTime: 5 * 60 * 1000,
@@ -53,6 +54,20 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Time Range Filter */}
+      <div className="flex justify-end mb-4">
+        <select
+          value={timeRange}
+          onChange={(e) => setTimeRange(e.target.value)}
+          className="border border-gray-300 rounded-md p-2"
+        >
+          <option value="1y">Last 1 Year</option>
+          <option value="6m">Last 6 Months</option>
+          <option value="3m">Last 3 Months</option>
+          <option value="1m">Last 1 Month</option>
+        </select>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Views Growth"
