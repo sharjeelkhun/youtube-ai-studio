@@ -7,6 +7,7 @@ export interface VideoData {
   uploadDate: string;
   description: string;
   tags: string[];
+  subscribers?: string; // Add subscribers field (optional)
 }
 
 export interface YouTubeApiError {

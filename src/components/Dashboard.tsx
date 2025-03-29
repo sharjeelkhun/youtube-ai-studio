@@ -62,6 +62,7 @@ export function Dashboard() {
   const totalViews = analytics?.totalViews ?? 0;
   const totalLikes = analytics?.totalLikes ?? 0;
   const engagementRate = analytics?.engagementRate ?? 0;
+  const totalSubscribers = analytics?.totalSubscribers ?? 0;
   const subscriberGrowth = analytics?.subscriberGrowth ?? 0;
 
   return (
@@ -99,6 +100,22 @@ export function Dashboard() {
           title="Engagement Rate"
           value={`${engagementRate.toFixed(2)}%`}
           trend="neutral"
+        />
+        <StatsCard
+          title="Total Subscribers"
+          value={totalSubscribers.toLocaleString()}
+          trend="neutral"
+        />
+        <StatsCard
+          title="Subscriber Growth"
+          value={
+            hasData
+              ? subscriberGrowth >= 0
+                ? `Up ${subscriberGrowth.toFixed(2)}%`
+                : `Down ${Math.abs(Number(subscriberGrowth.toFixed(2)))}%`
+              : 'No data'
+          }
+          trend={hasData ? (subscriberGrowth >= 0 ? 'up' : 'down') : 'neutral'}
         />
       </div>
 

@@ -9,6 +9,7 @@ export interface AnalyticsData {
   engagementRate: number; // New metric
   analyticsData: VideoData[];
   totalViews: number; // Include total views in the interface
+  totalSubscribers: number; // Add total subscribers to the interface
 }
 
 function calculateGrowth(previous: number, current: number): number {
@@ -52,6 +53,7 @@ export async function getChannelAnalytics(
       engagementRate: 0,
       analyticsData: [],
       totalViews: 0, // Include total views in the default return
+      totalSubscribers: 0, // Default to 0
     };
   }
 
@@ -137,6 +139,7 @@ export async function getChannelAnalytics(
       engagementRate,
       analyticsData: currentPeriodVideos,
       totalViews, // Include total views in the returned data
+      totalSubscribers: currentSubscribers, // Include total subscribers
     };
   } catch (error) {
     console.error('Error calculating analytics:', error);
