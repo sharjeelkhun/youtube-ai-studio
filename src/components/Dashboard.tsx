@@ -54,23 +54,23 @@ export function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Views Growth"
-          value={`${analytics.viewsGrowth}%`}
-          trend={analytics.viewsGrowth >= 0 ? 'up' : 'down'}
+          value={analytics.viewsGrowth !== 0 ? `${analytics.viewsGrowth}%` : 'No Data'}
+          trend={analytics.viewsGrowth > 0 ? 'up' : analytics.viewsGrowth < 0 ? 'down' : 'neutral'}
         />
         <StatsCard
           title="Subscriber Growth"
-          value={`${analytics.subscriberGrowth}%`}
-          trend={analytics.subscriberGrowth >= 0 ? 'up' : 'down'}
+          value={analytics.subscriberGrowth !== 0 ? `${analytics.subscriberGrowth}%` : 'No Data'}
+          trend={analytics.subscriberGrowth > 0 ? 'up' : analytics.subscriberGrowth < 0 ? 'down' : 'neutral'}
         />
         <StatsCard
           title="Likes Growth"
-          value={`${analytics.likesGrowth}%`}
-          trend={analytics.likesGrowth >= 0 ? 'up' : 'down'}
+          value={analytics.likesGrowth !== 0 ? `${analytics.likesGrowth}%` : 'No Data'}
+          trend={analytics.likesGrowth > 0 ? 'up' : analytics.likesGrowth < 0 ? 'down' : 'neutral'}
         />
         <StatsCard
           title="Video Growth"
-          value={`${analytics.videoGrowth}%`}
-          trend={analytics.videoGrowth >= 0 ? 'up' : 'down'}
+          value={analytics.videoGrowth !== 0 ? `${analytics.videoGrowth}%` : 'No Data'}
+          trend={analytics.videoGrowth > 0 ? 'up' : analytics.videoGrowth < 0 ? 'down' : 'neutral'}
         />
       </div>
 
