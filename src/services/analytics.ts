@@ -52,21 +52,23 @@ export async function getChannelAnalytics(
   }
 
   try {
-    // Debugging input videos
-    console.log('Input Videos:', videos);
+    // Handle "Lifetime" filter
+    let currentPeriodVideos = videos;
+    let previousPeriodVideos: VideoData[] = [];
 
-    // Split videos into current and previous period
-    const now = new Date();
-    const rangeStart = new Date(now.getTime() - parseTimeRange(timeRange));
-    const previousRangeStart = new Date(rangeStart.getTime() - parseTimeRange(timeRange));
+    if (timeRange !== 'lifetime') {
+      const now = new Date();
+      const rangeStart = new Date(now.getTime() - parseTimeRange(timeRange));
+      const previousRangeStart = new Date(rangeStart.getTime() - parseTimeRange(timeRange));
 
-    const currentPeriodVideos = videos.filter(
-      (video) => new Date(video.uploadDate) >= rangeStart
-    );
-    const previousPeriodVideos = videos.filter((video) => {
-      const uploadDate = new Date(video.uploadDate);
-      return uploadDate >= previousRangeStart && uploadDate < rangeStart;
-    });
+      currentPeriodVideos = videos.filter(
+        (video) => new Date(video.uploadDate) >= rangeStart
+      );
+      previousPeriodVideos = videos.filter((video) => {
+        const uploadDate = new Date(video.uploadDate);
+        return uploadDate >= previousRangeStart && uploadDate < rangeStart;
+      });
+    }
 
     // Debugging periods
     console.log('Current Period Videos:', currentPeriodVideos);

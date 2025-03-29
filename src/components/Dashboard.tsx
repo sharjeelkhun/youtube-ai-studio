@@ -63,6 +63,7 @@ export function Dashboard() {
           onChange={(e) => setTimeRange(e.target.value)}
           className="border border-gray-300 rounded-md p-2"
         >
+          <option value="lifetime">Lifetime</option>
           <option value="1y">Last 1 Year</option>
           <option value="6m">Last 6 Months</option>
           <option value="3m">Last 3 Months</option>
@@ -70,40 +71,61 @@ export function Dashboard() {
         </select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-          title="Views Growth"
-          value={`${analytics.viewsGrowth.toFixed(2)}%`}
-          trend={analytics.viewsGrowth >= 0 ? 'up' : 'down'}
-        />
-        <StatsCard
-          title="Subscriber Growth"
-          value={`${analytics.subscriberGrowth.toFixed(2)}%`}
-          trend={analytics.subscriberGrowth >= 0 ? 'up' : 'down'}
-        />
-        <StatsCard
-          title="Likes Growth"
-          value={`${analytics.likesGrowth.toFixed(2)}%`}
-          trend={analytics.likesGrowth >= 0 ? 'up' : 'down'}
-        />
-        <StatsCard
-          title="Engagement Rate"
-          value={`${analytics.engagementRate.toFixed(2)}%`}
-          trend={analytics.engagementRate >= 0 ? 'up' : 'down'}
-        />
-      </div>
+      {/* Fallback for no data */}
+      {analytics.analyticsData.length === 0 ? (
+        <div className="text-center text-gray-500">
+          <p>No data available for the selected time range.</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatsCard
+              title="Views Growth"
+              value={
+                analytics.viewsGrowth >= 0
+                  ? `Increased by ${analytics.viewsGrowth.toFixed(2)}%`
+                  : `Decreased by ${Math.abs(analytics.viewsGrowth.toFixed(2))}%`
+              }
+              trend={analytics.viewsGrowth >= 0 ? 'up' : 'down'}
+            />
+            <StatsCard
+              title="Subscriber Growth"
+              value={
+                analytics.subscriberGrowth >= 0
+                  ? `Increased by ${analytics.subscriberGrowth.toFixed(2)}%`
+                  : `Decreased by ${Math.abs(analytics.subscriberGrowth.toFixed(2))}%`
+              }
+              trend={analytics.subscriberGrowth >= 0 ? 'up' : 'down'}
+            />
+            <StatsCard
+              title="Likes Growth"
+              value={
+                analytics.likesGrowth >= 0
+                  ? `Increased by ${analytics.likesGrowth.toFixed(2)}%`
+                  : `Decreased by ${Math.abs(analytics.likesGrowth.toFixed(2))}%`
+              }
+              trend={analytics.likesGrowth >= 0 ? 'up' : 'down'}
+            />
+            <StatsCard
+              title="Engagement Rate"
+              value={`${analytics.engagementRate.toFixed(2)}%`}
+              trend={analytics.engagementRate >= 0 ? 'up' : 'down'}
+            />
+          </div>
 
-      <TopVideosChart
-        videos={analytics.analyticsData.slice(0, 5).map((video) => ({
-          title: video.title,
-          views: parseInt(video.views || '0'),
-        }))}
-      />
+          <TopVideosChart
+            videos={analytics.analyticsData.slice(0, 5).map((video) => ({
+              title: video.title,
+              views: parseInt(video.views || '0'),
+            }))}
+          />
 
-      <Recommendations analytics={analytics} />
+          <Recommendations analytics={analytics} />
 
-      {analytics.analyticsData.length > 0 && (
-        <PerformanceChart data={analytics.analyticsData} />
+          {analytics.analyticsData.length > 0 && (
+            <PerformanceChart data={analytics.analyticsData} />
+          )}
+        </>
       )}
     </div>
   );
