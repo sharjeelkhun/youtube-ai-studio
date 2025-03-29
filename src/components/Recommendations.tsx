@@ -5,12 +5,12 @@ export function Recommendations({ analytics }: { analytics: any }) {
 
   if (analytics.viewsGrowth < 0) {
     recommendations.push(
-      `Your views have decreased by ${Math.abs(analytics.viewsGrowth.toFixed(2))}%. Consider posting more frequently to boost views.`
+      `Views are down by ${Math.abs(analytics.viewsGrowth.toFixed(2))}%. Post more frequently to boost views.`
     );
   }
   if (analytics.likesGrowth < 0) {
     recommendations.push(
-      `Your likes have decreased by ${Math.abs(analytics.likesGrowth.toFixed(2))}%. Engage with your audience to increase likes.`
+      `Likes are down by ${Math.abs(analytics.likesGrowth.toFixed(2))}%. Engage with your audience to increase likes.`
     );
   }
 

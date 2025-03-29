@@ -13,7 +13,7 @@ export function Dashboard() {
   const { accessToken, isAuthenticated } = useAuthStore();
   const [timeRange, setTimeRange] = useState('3m'); // Default to 3 months
 
-  const { data: videos, isLoading: isLoadingVideos } = useQuery(
+  const { data: videos, isLoading: isLoadingVideos, error: videosError } = useQuery(
     ['videos', accessToken],
     () => getChannelVideos(accessToken!),
     {
@@ -22,7 +22,7 @@ export function Dashboard() {
     }
   );
 
-  const { data: analytics, isLoading: isLoadingAnalytics } = useQuery(
+  const { data: analytics, isLoading: isLoadingAnalytics, error: analyticsError } = useQuery(
     ['analytics', videos, timeRange],
     () => getChannelAnalytics(accessToken!, videos!, timeRange),
     {
@@ -48,8 +48,20 @@ export function Dashboard() {
     );
   }
 
-  if (!analytics) {
-    return null;
+  if (videosError || analyticsError) {
+    return (
+      <div className="text-center text-red-500">
+        <p>Failed to load data. Please try again later.</p>
+      </div>
+    );
+  }
+
+  if (!analytics || !analytics.analyticsData) {
+    return (
+      <div className="text-center text-gray-500">
+        <p>No analytics data available.</p>
+      </div>
+    );
   }
 
   console.log('Analytics Data:', analytics); // Debugging the analytics data
@@ -74,7 +86,7 @@ export function Dashboard() {
       {/* Fallback for no data */}
       {analytics.analyticsData.length === 0 ? (
         <div className="text-center text-gray-500">
-          <p>No data available for the selected time range.</p>
+          <p>No uploads in this period.</p>
         </div>
       ) : (
         <>
@@ -83,8 +95,8 @@ export function Dashboard() {
               title="Views Growth"
               value={
                 analytics.viewsGrowth >= 0
-                  ? `Increased by ${analytics.viewsGrowth.toFixed(2)}%`
-                  : `Decreased by ${Math.abs(analytics.viewsGrowth.toFixed(2))}%`
+                  ? `Up ${analytics.viewsGrowth.toFixed(2)}%`
+                  : `Down ${Math.abs(analytics.viewsGrowth.toFixed(2))}%`
               }
               trend={analytics.viewsGrowth >= 0 ? 'up' : 'down'}
             />
@@ -92,8 +104,8 @@ export function Dashboard() {
               title="Subscriber Growth"
               value={
                 analytics.subscriberGrowth >= 0
-                  ? `Increased by ${analytics.subscriberGrowth.toFixed(2)}%`
-                  : `Decreased by ${Math.abs(analytics.subscriberGrowth.toFixed(2))}%`
+                  ? `Up ${analytics.subscriberGrowth.toFixed(2)}%`
+                  : `Down ${Math.abs(analytics.subscriberGrowth.toFixed(2))}%`
               }
               trend={analytics.subscriberGrowth >= 0 ? 'up' : 'down'}
             />
@@ -101,8 +113,8 @@ export function Dashboard() {
               title="Likes Growth"
               value={
                 analytics.likesGrowth >= 0
-                  ? `Increased by ${analytics.likesGrowth.toFixed(2)}%`
-                  : `Decreased by ${Math.abs(analytics.likesGrowth.toFixed(2))}%`
+                  ? `Up ${analytics.likesGrowth.toFixed(2)}%`
+                  : `Down ${Math.abs(analytics.likesGrowth.toFixed(2))}%`
               }
               trend={analytics.likesGrowth >= 0 ? 'up' : 'down'}
             />
