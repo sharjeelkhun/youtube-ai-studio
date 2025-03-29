@@ -19,15 +19,20 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const { getKey } = useAPIKeyStore();
   const cohereKey = getKey('cohere');
 
-  const { data: seoScore, isLoading } = useQuery(
+  const { data: seoScore, isLoading, error } = useQuery(
     ['seo-score', video.id],
     async () => {
-      if (!cohereKey) return null;
+      if (!cohereKey) {
+        toast.error('Cohere API key is missing. Please configure it in settings.');
+        return null;
+      }
       try {
         const analysis = await analyzeSEO(video.title, video.description, video.tags);
+        console.log('SEO Analysis Response:', analysis); // Debugging response
         return analysis.score;
       } catch (error) {
         console.error('Error calculating SEO score:', error);
+        toast.error('Failed to analyze SEO. Please try again later.');
         return null;
       }
     },
@@ -36,9 +41,13 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       staleTime: 30 * 60 * 1000, // Cache for 30 minutes
       cacheTime: 60 * 60 * 1000, // Keep in cache for 1 hour
       retry: false,
-      refetchOnWindowFocus: false
+      refetchOnWindowFocus: false,
     }
   );
+
+  if (error) {
+    console.error('Error in SEO Query:', error);
+  }
 
   return (
     <motion.div
@@ -52,7 +61,7 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
           alt={video.title}
           className="w-full aspect-video object-cover"
         />
-        {!isLoading && seoScore !== null && (
+        {!isLoading && seoScore !== null && typeof seoScore === 'number' && (
           <div className="absolute top-2 right-2">
             <SEOScoreIndicator score={seoScore} size="sm" />
           </div>
