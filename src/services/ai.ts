@@ -119,17 +119,27 @@ Response must be ONLY the JSON object, no other text.`;
       );
     }
 
-    const rawResponse = await response.text();
+    const rawResponse = await response.json();
     console.log('Raw AI Response:', rawResponse);
 
-    const optimizedData = tryParseJson<{ title: string; description: string; tags: string[] }>(rawResponse, {
-      title: '',
-      description: '',
-      tags: [],
-    });
+    if (!rawResponse.generations?.[0]?.text) {
+      throw new Error('Invalid API response structure');
+    }
+
+    const generatedText = rawResponse.generations[0].text;
+    console.log('Generated Text:', generatedText);
+
+    const optimizedData = tryParseJson<{ title: string; description: string; tags: string[] }>(
+      generatedText,
+      {
+        title: '',
+        description: '',
+        tags: [],
+      }
+    );
 
     if (!optimizedData.title || !optimizedData.description || !Array.isArray(optimizedData.tags)) {
-      console.error('Invalid AI response structure:', optimizedData);
+      console.error('Invalid optimization data:', optimizedData);
       throw new Error('Invalid optimization data received from AI');
     }
 
