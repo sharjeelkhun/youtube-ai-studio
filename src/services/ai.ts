@@ -33,12 +33,19 @@ export async function analyzeSEO(title: string, description: string, tags: strin
     });
 
     console.log('API Response Status:', response.status); // Debug log
+    console.log('API Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      url: response.url,
+    });
 
     if (!response.ok) {
       if (response.status === 401) {
         throw new Error('Unauthorized: Invalid API key.');
       } else if (response.status === 429) {
         throw new Error('Rate limit exceeded. Please try again later.');
+      } else if (response.status === 404) {
+        throw new Error('API endpoint not found. Please check the API URL.');
       } else {
         throw new Error(`API Error: ${response.status} ${response.statusText}`);
       }

@@ -21,10 +21,13 @@ export function VideoSuggestionsModal({ video, isOpen, onClose }: VideoSuggestio
         title: video.title,
         description: video.description,
         views: video.views,
-        likes: video.likes
+        likes: video.likes,
       })
         .then(setSuggestions)
-        .catch(console.error)
+        .catch((error) => {
+          console.error('Error fetching video suggestions:', error);
+          setSuggestions('Failed to fetch suggestions. Please try again later.');
+        })
         .finally(() => setLoading(false));
     }
   }, [isOpen, video]);
