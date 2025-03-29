@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from 'react-query';
 import { useAuthStore } from '../store/authStore';
-import { getChannelVideos, getAISuggestions } from '../services/youtube';
+import { getChannelVideos } from '../services/youtube';
 import { VideoCard } from './VideoCard';
 import { VideoEditModal } from './VideoEditModal';
 import { VideoSuggestionsModal } from './VideoSuggestionsModal';
@@ -14,7 +14,6 @@ export function VideosTab() {
   const [selectedVideo, setSelectedVideo] = useState<VideoData | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSuggestionsModal, setShowSuggestionsModal] = useState(false);
-  const [aiSuggestions, setAISuggestions] = useState<string[] | null>(null);
 
   const { data: videos, isLoading, refetch } = useQuery(
     ['videos', accessToken],
@@ -24,18 +23,6 @@ export function VideosTab() {
       staleTime: 5 * 60 * 1000,
     }
   );
-
-  const handleFetchAISuggestions = async (videoId: string) => {
-    if (!accessToken) return;
-
-    try {
-      const suggestions = await getAISuggestions(videoId, accessToken);
-      setAISuggestions(suggestions);
-      setShowSuggestionsModal(true);
-    } catch (error) {
-      console.error('Error fetching AI suggestions:', error);
-    }
-  };
 
   if (!isAuthenticated) {
     return (
@@ -90,7 +77,7 @@ export function VideosTab() {
             }}
             onSuggestions={() => {
               setSelectedVideo(video);
-              handleFetchAISuggestions(video.id);
+              setShowSuggestionsModal(true);
             }}
           />
         ))}
@@ -108,12 +95,8 @@ export function VideosTab() {
       {selectedVideo && showSuggestionsModal && (
         <VideoSuggestionsModal
           video={selectedVideo}
-          aiSuggestions={aiSuggestions}
           isOpen={showSuggestionsModal}
-          onClose={() => {
-            setShowSuggestionsModal(false);
-            setAISuggestions(null);
-          }}
+          onClose={() => setShowSuggestionsModal(false)}
         />
       )}
     </div>
