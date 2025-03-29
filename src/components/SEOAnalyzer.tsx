@@ -17,7 +17,6 @@ export function SEOAnalyzer() {
       return;
     }
 
-
     if (!aiService.hasActiveProvider()) {
       toast.error('Please configure an AI provider in Settings');
       return;
@@ -33,12 +32,12 @@ export function SEOAnalyzer() {
       setAnalysis(result);
       toast.success('Analysis completed successfully!');
     } catch (error: any) {
-      if (error.message.includes('All AI providers')) {
-        toast.error('All AI providers are rate limited. Please try again later.');
-      } else if (error.message.includes('API key')) {
-        toast.error('Please check your API key configuration in Settings.');
+      if (error.message.includes('Rate limit')) {
+        toast.error('Rate limit reached. The system will automatically retry with different providers.');
+      } else if (error.message.includes('All providers')) {
+        toast.error('All AI providers are currently unavailable. Please try again later.');
       } else {
-        toast.error('Failed to analyze SEO. Please try again later.');
+        toast.error(error.message || 'Failed to analyze SEO');
       }
       console.error('Error analyzing SEO:', error);
     } finally {

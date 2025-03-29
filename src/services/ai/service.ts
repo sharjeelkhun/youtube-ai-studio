@@ -36,13 +36,13 @@ class AIService {
   async generateContent(prompt: string): Promise<string> {
     const providers = ['cohere', 'openai', 'huggingface'];
     let attempts = 0;
+    let lastError: Error | null = null;
     
-    while (attempts < providers.length) {
+    while (attempts < this.maxRetries * providers.length) {
+      const provider = providers[attempts % providers.length];
       try {
-        const currentProvider = providers[attempts];
-        console.log(`Trying provider: ${currentProvider}`);
+        console.log(`Attempting with provider: ${provider} (attempt ${attempts + 1})`);
         
-        const response = await this.tryProvider(currentProvider, prompt);
         if (response) {
           this.currentProvider = currentProvider; // Update current provider if successful
           return response;
@@ -132,12 +132,21 @@ class AIService {
   }
 
   private async generateWithHuggingFace(prompt: string, apiKey: string): Promise<string> {
-    const response = await fetch(`${AI_PROVIDERS.HUGGINGFACE.baseUrl}/gpt2`, {
+    // Using text-generation model instead of gpt2
+    const response = await fetch('https://api-inference.huggingface.co/models/facebook/opt-1.3b', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json', // Add content type header
       },
-      body: JSON.stringify({ inputs: prompt }),
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: {
+          max_length: 1000,
+          temperature: 0.7,
+          return_full_text: false,
+        },
+      }),
     });
 
     if (!response.ok) {
@@ -145,7 +154,7 @@ class AIService {
     }
 
     const data = await response.json();
-    return data[0].generated_text;
+    return Array.isArray(data) ? data[0].generated_text : data.generated_text;
   }
 
   private async handleRateLimit(error: any, provider: string): Promise<string> {
