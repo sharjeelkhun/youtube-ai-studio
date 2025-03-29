@@ -1,4 +1,6 @@
 import { aiService } from './ai/service';
+export { aiService }; // Re-export aiService
+
 import toast from 'react-hot-toast';
 import { SEOAnalysis } from '../types/seo';
 import { useAPIKeyStore } from '../store/apiKeyStore';

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { analyzeSEO, aiService } from '../services/ai';
+import { analyzeSEO } from '../services/ai';
+import { aiService } from '../services/ai/service'; // Import aiService from correct path
 import toast from 'react-hot-toast';
 
 export function SEOAnalyzer() {
