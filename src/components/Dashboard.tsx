@@ -64,8 +64,6 @@ export function Dashboard() {
     );
   }
 
-  console.log('Analytics Data:', analytics); // Debugging the analytics data
-
   return (
     <div className="space-y-6">
       {/* Time Range Filter */}
@@ -80,13 +78,14 @@ export function Dashboard() {
           <option value="6m">Last 6 Months</option>
           <option value="3m">Last 3 Months</option>
           <option value="1m">Last 1 Month</option>
+          <option value="1w">Last Week</option>
         </select>
       </div>
 
       {/* Fallback for no data */}
       {analytics.analyticsData.length === 0 ? (
         <div className="text-center text-gray-500">
-          <p>No uploads in this period.</p>
+          <p>No uploads found for the selected time range. Try selecting a different range.</p>
         </div>
       ) : (
         <>
@@ -96,7 +95,7 @@ export function Dashboard() {
               value={
                 analytics.viewsGrowth >= 0
                   ? `Up ${analytics.viewsGrowth.toFixed(2)}%`
-                  : `Down ${Math.abs(analytics.viewsGrowth.toFixed(2))}%`
+                  : `Down ${Math.abs(Number(analytics.viewsGrowth.toFixed(2)))}%`
               }
               trend={analytics.viewsGrowth >= 0 ? 'up' : 'down'}
             />
@@ -105,7 +104,7 @@ export function Dashboard() {
               value={
                 analytics.subscriberGrowth >= 0
                   ? `Up ${analytics.subscriberGrowth.toFixed(2)}%`
-                  : `Down ${Math.abs(analytics.subscriberGrowth.toFixed(2))}%`
+                  : `Down ${Math.abs(Number(analytics.subscriberGrowth.toFixed(2)))}%`
               }
               trend={analytics.subscriberGrowth >= 0 ? 'up' : 'down'}
             />
@@ -114,7 +113,7 @@ export function Dashboard() {
               value={
                 analytics.likesGrowth >= 0
                   ? `Up ${analytics.likesGrowth.toFixed(2)}%`
-                  : `Down ${Math.abs(analytics.likesGrowth.toFixed(2))}%`
+                  : `Down ${Math.abs(Number(analytics.likesGrowth.toFixed(2)))}%`
               }
               trend={analytics.likesGrowth >= 0 ? 'up' : 'down'}
             />

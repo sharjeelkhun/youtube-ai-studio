@@ -17,16 +17,18 @@ function calculateGrowth(previous: number, current: number): number {
 
 function parseTimeRange(timeRange: string): number {
   switch (timeRange) {
-    case '1y':
-      return 365 * 24 * 60 * 60 * 1000;
-    case '6m':
-      return 6 * 30 * 24 * 60 * 60 * 1000;
-    case '3m':
-      return 3 * 30 * 24 * 60 * 60 * 1000;
-    case '1m':
+    case '1w': // Last Week
+      return 7 * 24 * 60 * 60 * 1000;
+    case '1m': // Last 1 Month
       return 30 * 24 * 60 * 60 * 1000;
-    default:
-      return 3 * 30 * 24 * 60 * 60 * 1000; // Default to 3 months
+    case '3m': // Last 3 Months
+      return 3 * 30 * 24 * 60 * 60 * 1000;
+    case '6m': // Last 6 Months
+      return 6 * 30 * 24 * 60 * 60 * 1000;
+    case '1y': // Last 1 Year
+      return 365 * 24 * 60 * 60 * 1000;
+    default: // Default to 3 months
+      return 3 * 30 * 24 * 60 * 60 * 1000;
   }
 }
 
