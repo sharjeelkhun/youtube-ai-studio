@@ -10,89 +10,112 @@ export interface AnalyticsData {
 }
 
 function calculateGrowth(previous: number, current: number): number {
-  if (previous === 0) return current > 0 ? 100 : 0; // Handle division by zero
-  return ((current - previous) / previous) * 100;
+  if (previous === 0) return current > 0 ? 100 : 0; // Handle division by zerots
+  return ((current - previous) / previous) * 100;0; // Handle division by zero
+} return ((current - previous) / previous) * 100;
 }
+function parseTimeRange(timeRange: string): number {
+  switch (timeRange) {getChannelAnalytics(
+    case '1y':
+      return 365 * 24 * 60 * 60 * 1000;[],
+    case '6m':
+      return 6 * 30 * 24 * 60 * 60 * 1000;ata> {
+    case '3m':
+      return 3 * 30 * 24 * 60 * 60 * 1000; throw new Error('Access token is required');
+    case '1m':  }
+      return 30 * 24 * 60 * 60 * 1000;
+    default:s.length) {
+      return 3 * 30 * 24 * 60 * 60 * 1000; // Default to 3 months
+  }
+}h: 0,
 
-export async function getChannelAnalytics(
+export async function getChannelAnalytics(,
   accessToken: string,
-  videos: VideoData[],
-  timeRange: string
-): Promise<AnalyticsData> {
+  videos: VideoData[],analyticsData: []
+  timeRange: string };
+): Promise<AnalyticsData> {  }
   if (!accessToken) {
     throw new Error('Access token is required');
   }
-
-  if (!videos.length) {
-    return {
+);
+  if (!videos.length) {;
+    return {Range) {
       viewsGrowth: 0,
-      subscriberGrowth: 0,
+      subscriberGrowth: 0,tart = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
       likesGrowth: 0,
       videoGrowth: 0,
-      totalLikes: 0,
+      totalLikes: 0,tart = new Date(now.getTime() - 6 * 30 * 24 * 60 * 60 * 1000);
       analyticsData: []
     };
-  }
+  }tart = new Date(now.getTime() - 3 * 30 * 24 * 60 * 60 * 1000);
 
   try {
-    // Parse time range
+    // Split videos into current and previous periodtart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const now = new Date();
-    let rangeStart: Date;
-    switch (timeRange) {
-      case '1y':
-        rangeStart = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-        break;
-      case '6m':
-        rangeStart = new Date(now.getTime() - 6 * 30 * 24 * 60 * 60 * 1000);
-        break;
-      case '3m':
-        rangeStart = new Date(now.getTime() - 3 * 30 * 24 * 60 * 60 * 1000);
-        break;
-      case '1m':
-        rangeStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      default:
-        rangeStart = new Date(now.getTime() - 3 * 30 * 24 * 60 * 60 * 1000); // Default to 3 months
+    const rangeStart = new Date(now.getTime() - parseTimeRange(timeRange));
+    const previousRangeStart = new Date(rangeStart.getTime() - parseTimeRange(timeRange));   rangeStart = new Date(now.getTime() - 3 * 30 * 24 * 60 * 60 * 1000); // Default to 3 months
     }
-
-    // Filter videos by time range
-    const filteredVideos = videos.filter(
+    const currentPeriodVideos = videos.filter(
       (video) => new Date(video.uploadDate) >= rangeStart
     );
-
-    // Debugging filtered videos
-    console.log('Filtered Videos:', filteredVideos);
-
-    // Sort videos by date
-    const sortedVideos = [...filteredVideos].sort((a, b) =>
-      new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+    const previousPeriodVideos = videos.filter((video) => new Date(video.uploadDate) >= rangeStart
+      (video) => {    );
+        const uploadDate = new Date(video.uploadDate);
+        return uploadDate >= previousRangeStart && uploadDate < rangeStart;
+      }    console.log('Filtered Videos:', filteredVideos);
     );
 
-    // Calculate total likes
-    const totalLikes = sortedVideos.reduce(
-      (sum, video) => sum + parseInt(video.likes || '0'),
+    // Debugging periods
+    console.log('Current Period Videos:', currentPeriodVideos);new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+    console.log('Previous Period Videos:', previousPeriodVideos);    );
+
+    // Calculate metrics for both periods
+    const currentViews = currentPeriodVideos.reduce(
+      (sum, video) => sum + parseInt(video.views || '0'),sum, video) => sum + parseInt(video.likes || '0'),
+      00
+    );    );
+    const previousViews = previousPeriodVideos.reduce(
+      (sum, video) => sum + parseInt(video.views || '0'),eos
+      0
+    );sum, video) => sum + parseInt(video.views || '0'),
+0
+    const currentLikes = currentPeriodVideos.reduce(    );
+      (sum, video) => sum + parseInt(video.likes || '0'), Replace with actual logic for previous views
       0
     );
-
-    // Calculate metrics for the filtered videos
-    const currentViews = sortedVideos.reduce(
-      (sum, video) => sum + parseInt(video.views || '0'),
+    const previousLikes = previousPeriodVideos.reduce(
+      (sum, video) => sum + parseInt(video.likes || '0'),      0
       0
-    );
+    );ousLikes = 0; // Debugging: Replace with actual logic for previous likes
 
-    // Growth calculations remain the same
-    const viewsGrowth = calculateGrowth(0, currentViews); // Adjust as needed
-    const likesGrowth = calculateGrowth(0, totalLikes); // Adjust as needed
-    const videoGrowth = calculateGrowth(0, sortedVideos.length); // Adjust as needed
+    // Debugging calculated metrics
+    console.log('Current Views:', currentViews, 'Previous Views:', previousViews);e.log('Current Likes:', currentLikes, 'Previous Likes:', previousLikes);
+    console.log('Current Likes:', currentLikes, 'Previous Likes:', previousLikes);
+alculate growth percentages
+    // Calculate growth percentages viewsGrowth = calculateGrowth(previousViews, currentViews);
+    const viewsGrowth = calculateGrowth(previousViews, currentViews);nst likesGrowth = calculateGrowth(previousLikes, currentLikes);
+    const likesGrowth = calculateGrowth(previousLikes, currentLikes);    const videoGrowth = calculateGrowth(0, sortedVideos.length); // Adjust as needed
+    const videoGrowth = calculateGrowth(previousPeriodVideos.length, currentPeriodVideos.length);
+rowth percentages
+    // Debugging growth percentagesGrowth:', viewsGrowth);
+    console.log('Views Growth:', viewsGrowth);ikes Growth:', likesGrowth);
+    console.log('Likes Growth:', likesGrowth);ideo Growth:', videoGrowth);
+    console.log('Video Growth:', videoGrowth);
+.min(
+    return {Math.max(
+      viewsGrowth,
+      subscriberGrowth: 0, // Replace with actual logic for subscriber growthideoGrowth * 0.2)).toFixed(1)
+      likesGrowth,
+      videoGrowth,     -100
+      totalLikes: currentLikes,     ),
 
-    const subscriberGrowth = Math.min(
-      Math.max(
-        Number(
-          ((viewsGrowth * 0.4) + (likesGrowth * 0.4) + (videoGrowth * 0.2)).toFixed(1)
-        ),
-        -100
-      ),
-      100
+
+
+
+
+
+
+}  }    throw error;    console.error('Error calculating analytics:', error);  } catch (error) {    };      analyticsData: currentPeriodVideos      100
     );
 
     return {
