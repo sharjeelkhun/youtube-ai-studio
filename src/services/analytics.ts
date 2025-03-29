@@ -8,6 +8,7 @@ export interface AnalyticsData {
   totalLikes: number;
   engagementRate: number; // New metric
   analyticsData: VideoData[];
+  totalViews: number; // Include total views in the interface
 }
 
 function calculateGrowth(previous: number, current: number): number {
@@ -49,7 +50,8 @@ export async function getChannelAnalytics(
       videoGrowth: 0,
       totalLikes: 0,
       engagementRate: 0,
-      analyticsData: []
+      analyticsData: [],
+      totalViews: 0, // Include total views in the default return
     };
   }
 
@@ -110,10 +112,7 @@ export async function getChannelAnalytics(
     console.log('Video Growth:', videoGrowth);
 
     // Calculate engagement rate
-    const totalViews = currentPeriodVideos.reduce(
-      (sum, video) => sum + parseInt(video.views || '0'),
-      0
-    );
+    const totalViews = currentViews; // Total views for the current period
     const engagementRate = totalViews > 0 ? (currentLikes / totalViews) * 100 : 0;
 
     return {
@@ -123,7 +122,8 @@ export async function getChannelAnalytics(
       videoGrowth,
       totalLikes: currentLikes,
       engagementRate,
-      analyticsData: currentPeriodVideos
+      analyticsData: currentPeriodVideos,
+      totalViews, // Include total views in the returned data
     };
   } catch (error) {
     console.error('Error calculating analytics:', error);
