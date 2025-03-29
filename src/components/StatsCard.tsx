@@ -1,37 +1,24 @@
 import React from 'react';
-import { LucideIcon } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface StatsCardProps {
-  icon: LucideIcon;
-  label: string;
+  title: string;
   value: string;
-  trend: string;
-  trendIcon: LucideIcon;
-  trendColor: string;
+  trend: 'up' | 'down';
 }
 
-export function StatsCard({ icon: Icon, label, value, trend, trendIcon: TrendIcon, trendColor }: StatsCardProps) {
+export function StatsCard({ title, value, trend }: StatsCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-    >
-      <div className="flex items-center justify-between mb-4">
-        <div className="p-2 bg-blue-50 rounded-lg">
-          <Icon className="w-6 h-6 text-blue-600" />
-        </div>
-        <div className={`flex items-center gap-1 ${trendColor}`}>
-          <TrendIcon className="w-4 h-4" />
-          <span className="text-sm font-medium">{trend}</span>
-        </div>
+    <div className="bg-white p-6 rounded-xl shadow-sm">
+      <h3 className="text-sm font-medium text-gray-500 mb-2">{title}</h3>
+      <div className="flex items-center justify-between">
+        <p className="text-2xl font-semibold">{value}</p>
+        {trend === 'up' ? (
+          <TrendingUp className="w-5 h-5 text-green-500" />
+        ) : (
+          <TrendingDown className="w-5 h-5 text-red-500" />
+        )}
       </div>
-      
-      <div>
-        <h3 className="text-sm font-medium text-gray-600">{label}</h3>
-        <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-      </div>
-    </motion.div>
+    </div>
   );
 }

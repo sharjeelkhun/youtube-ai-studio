@@ -1,12 +1,7 @@
 import React from 'react';
-import { LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-interface MenuItem {
-  icon: LucideIcon;
-  label: string;
-  href: string;
-}
+import { MenuItem } from '../types/menu';
+import { motion } from 'framer-motion';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -15,25 +10,35 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, menuItems, currentPath }: SidebarProps) {
+  if (!isOpen) {
+    return null;
+  }
+
   return (
-    <aside className={`${isOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 ease-in-out`}>
-      <nav className="h-full py-4">
+    <motion.aside
+      initial={{ width: 0, opacity: 0 }}
+      animate={{ width: 256, opacity: 1 }}
+      className="hidden md:block h-full bg-white border-r border-gray-200 overflow-y-auto"
+    >
+      <nav className="p-4">
         <ul className="space-y-2">
           {menuItems.map((item, index) => (
             <li key={index}>
               <Link
                 to={item.href}
-                className={`flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-blue-600 ${
-                  currentPath === item.href ? 'bg-blue-50 text-blue-600' : ''
+                className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+                  currentPath === item.href
+                    ? 'bg-red-50 text-red-600'
+                    : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                <item.icon className="w-6 h-6" />
-                {isOpen && <span className="ml-3">{item.label}</span>}
+                <item.icon className="w-5 h-5 mr-3" />
+                {item.label}
               </Link>
             </li>
           ))}
         </ul>
       </nav>
-    </aside>
+    </motion.aside>
   );
 }

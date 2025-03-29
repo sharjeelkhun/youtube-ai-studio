@@ -1,6 +1,7 @@
 import React from 'react';
-import { Menu, Bell, Search, LogIn, Youtube } from 'lucide-react';
+import { Menu, Bell, Search, LogIn } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { initiateAuth } from '../services/auth';
 import toast from 'react-hot-toast';
 
 export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
@@ -11,28 +12,7 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
       logout();
       toast.success('Logged out successfully');
     } else {
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      if (!clientId) {
-        toast.error('Google Client ID is not configured');
-        return;
-      }
-
-      const redirectUri = 'https://youtube-ai-studio.netlify.app';
-      const scope = [
-        'https://www.googleapis.com/auth/youtube.readonly',
-        'https://www.googleapis.com/auth/youtube.upload',
-        'https://www.googleapis.com/auth/youtube.force-ssl',
-      ].join(' ');
-
-      const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-      authUrl.searchParams.append('client_id', clientId);
-      authUrl.searchParams.append('redirect_uri', redirectUri);
-      authUrl.searchParams.append('response_type', 'token');
-      authUrl.searchParams.append('scope', scope);
-      authUrl.searchParams.append('include_granted_scopes', 'true');
-      authUrl.searchParams.append('prompt', 'consent');
-
-      window.location.href = authUrl.toString();
+      initiateAuth();
     }
   };
 
@@ -47,12 +27,17 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
             <Menu className="w-6 h-6" />
           </button>
           <div className="flex items-center gap-2">
-            <Youtube className="w-6 h-6 text-red-600" />
-            <h1 className="text-xl font-semibold">YouTube AI Studio</h1>
+            <img 
+              src="https://www.youtube.com/s/desktop/7c155e84/img/favicon_32x32.png"
+              alt="YouTube Logo"
+              className="w-6 h-6"
+            />
+            <h1 className="text-xl font-semibold hidden md:block">YouTube AI Studio</h1>
+            <h1 className="text-xl font-semibold md:hidden">YT AI Studio</h1>
           </div>
         </div>
 
-        <div className="flex-1 max-w-2xl mx-8">
+        <div className="flex-1 max-w-2xl mx-8 hidden md:block">
           <div className="relative">
             <input
               type="text"
@@ -82,12 +67,13 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                   alt="Profile"
                   className="w-6 h-6 rounded-full"
                 />
-                <span>Logout</span>
+                <span className="hidden md:inline">Logout</span>
               </>
             ) : (
               <>
                 <LogIn className="w-5 h-5" />
-                <span>Sign In with YouTube</span>
+                <span className="hidden md:inline">Sign In with YouTube</span>
+                <span className="md:hidden">Sign In</span>
               </>
             )}
           </button>

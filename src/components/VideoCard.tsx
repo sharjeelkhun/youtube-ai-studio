@@ -1,121 +1,108 @@
-import React, { useState } from 'react';
-import { Eye, ThumbsUp, Calendar, Edit, Trash2, Lightbulb } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import React from 'react';
+import { VideoData } from '../types/youtube';
+import { Edit2, Wand2, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { VideoEditModal } from './VideoEditModal';
-import { VideoSuggestionsModal } from './VideoSuggestionsModal';
-import { deleteVideo } from '../services/videoEditor';
-import { useAuthStore } from '../store/authStore';
+import { format } from 'date-fns';
+import { SEOScoreIndicator } from './video/SEOScoreIndicator';
+import { analyzeSEO } from '../services/ai';
+import { useAPIKeyStore } from '../store/apiKeyStore';
+import { useQuery } from 'react-query';
 import toast from 'react-hot-toast';
 
 interface VideoCardProps {
-  id: string;
-  title: string;
-  thumbnail: string;
-  views: string;
-  likes: string;
-  uploadDate: string;
-  description: string;
-  tags: string[];
-  onUpdate: () => void;
+  video: VideoData;
+  onEdit: () => void;
+  onSuggestions: () => void;
 }
 
-export function VideoCard({ id, title, thumbnail, views, likes, uploadDate, description, tags, onUpdate }: VideoCardProps) {
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isSuggestionsModalOpen, setIsSuggestionsModalOpen] = useState(false);
-  const { accessToken } = useAuthStore();
+export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
+  const { getKey } = useAPIKeyStore();
+  const cohereKey = getKey('cohere');
 
-  const handleDelete = async () => {
-    if (!accessToken) return;
-
-    if (window.confirm('Are you sure you want to delete this video?')) {
+  const { data: seoScore, isLoading } = useQuery(
+    ['seo-score', video.id],
+    async () => {
+      if (!cohereKey) return null;
       try {
-        await deleteVideo(id, accessToken);
-        onUpdate();
+        const analysis = await analyzeSEO(video.title, video.description, video.tags);
+        return analysis.score;
       } catch (error) {
-        console.error('Failed to delete video:', error);
+        console.error('Error calculating SEO score:', error);
+        return null;
       }
+    },
+    {
+      enabled: !!cohereKey,
+      staleTime: 30 * 60 * 1000, // Cache for 30 minutes
+      cacheTime: 60 * 60 * 1000, // Keep in cache for 1 hour
+      retry: false,
+      refetchOnWindowFocus: false
     }
-  };
+  );
 
   return (
-    <>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-      >
-        <div className="relative group">
-          <img 
-            src={thumbnail} 
-            alt={title} 
-            className="w-full aspect-video object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="absolute bottom-4 right-4 flex gap-2">
-              <button
-                onClick={() => setIsSuggestionsModalOpen(true)}
-                className="p-2 bg-white rounded-full hover:bg-gray-100"
-                title="Get AI Suggestions"
-              >
-                <Lightbulb className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setIsEditModalOpen(true)}
-                className="p-2 bg-white rounded-full hover:bg-gray-100"
-              >
-                <Edit className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleDelete}
-                className="p-2 bg-white rounded-full hover:bg-gray-100"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-lg shadow-sm overflow-hidden"
+    >
+      <div className="relative">
+        <img
+          src={video.thumbnail}
+          alt={video.title}
+          className="w-full aspect-video object-cover"
+        />
+        {!isLoading && seoScore !== null && (
+          <div className="absolute top-2 right-2">
+            <SEOScoreIndicator score={seoScore} size="sm" />
           </div>
-        </div>
+        )}
+        {!isLoading && !cohereKey && (
+          <div className="absolute top-2 right-2 bg-gray-100 rounded-lg px-3 py-1 text-sm text-gray-600">
+            Configure AI in Settings
+          </div>
+        )}
+      </div>
+      
+      <div className="p-4">
+        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+          {video.title}
+        </h3>
         
-        <div className="p-4">
-          <h3 className="font-semibold text-gray-900 mb-3 line-clamp-2 min-h-[48px]">
-            {title}
-          </h3>
-          
-          <div className="grid grid-cols-3 gap-4">
-            <div className="flex flex-col items-center p-2 bg-gray-50 rounded-lg">
-              <Eye className="w-4 h-4 text-gray-600 mb-1" />
-              <span className="text-sm font-medium">
-                {parseInt(views).toLocaleString()}
-              </span>
-            </div>
-            <div className="flex flex-col items-center p-2 bg-gray-50 rounded-lg">
-              <ThumbsUp className="w-4 h-4 text-gray-600 mb-1" />
-              <span className="text-sm font-medium">
-                {parseInt(likes).toLocaleString()}
-              </span>
-            </div>
-            <div className="flex flex-col items-center p-2 bg-gray-50 rounded-lg">
-              <Calendar className="w-4 h-4 text-gray-600 mb-1" />
-              <span className="text-sm font-medium">
-                {format(parseISO(uploadDate), 'MMM d')}
-              </span>
-            </div>
-          </div>
+        <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
+          <span>{format(new Date(video.uploadDate), 'MMM d, yyyy')}</span>
+          <span>{parseInt(video.views).toLocaleString()} views</span>
+          <span>{parseInt(video.likes).toLocaleString()} likes</span>
         </div>
-      </motion.div>
 
-      <VideoEditModal
-        video={{ id, title, thumbnail, views, likes, uploadDate, description, tags }}
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onUpdate={onUpdate}
-      />
-
-      <VideoSuggestionsModal
-        video={{ id, title, thumbnail, views, likes, uploadDate, description, tags }}
-        isOpen={isSuggestionsModalOpen}
-        onClose={() => setIsSuggestionsModalOpen(false)}
-      />
-    </>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onEdit}
+            className="flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <Edit2 className="w-4 h-4" />
+            Edit
+          </button>
+          
+          <button
+            onClick={onSuggestions}
+            className="flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <Wand2 className="w-4 h-4" />
+            Suggestions
+          </button>
+          
+          <a
+            href={`https://youtube.com/watch?v=${video.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors ml-auto"
+          >
+            <ExternalLink className="w-4 h-4" />
+            View
+          </a>
+        </div>
+      </div>
+    </motion.div>
   );
 }

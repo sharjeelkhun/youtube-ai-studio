@@ -1,43 +1,60 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { Dashboard } from './components/Dashboard';
-import { ThumbnailEditor } from './components/ThumbnailEditor';
-import { SEOAnalyzer } from './components/SEOAnalyzer';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/authStore';
+import { handleAuthCallback, refreshSession } from './services/auth';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000,
+    },
+  },
+});
+
+const router = createBrowserRouter([
+  {
+    path: '*',
+    element: <Layout />,
+  },
+]);
 
 function App() {
-  const { setAccessToken } = useAuthStore();
+  const { setAuth } = useAuthStore();
 
   useEffect(() => {
     // Handle OAuth callback
-    const hash = window.location.hash;
-    if (hash) {
-      const params = new URLSearchParams(hash.substring(1));
-      const accessToken = params.get('access_token');
-      if (accessToken) {
-        setAccessToken(accessToken);
-        window.location.hash = '';
-      }
+    const authResult = handleAuthCallback();
+    if (authResult) {
+      setAuth(authResult.accessToken, authResult.expiryTime);
+      window.location.hash = '';
     }
-  }, []);
+
+    // Check session validity periodically
+    const checkSession = setInterval(() => {
+      refreshSession();
+    }, 60000); // Check every minute
+
+    return () => clearInterval(checkSession);
+  }, [setAuth]);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/editor" element={<ThumbnailEditor />} />
-            <Route path="/seo" element={<SEOAnalyzer />} />
-          </Routes>
-        </Layout>
-      </Router>
-      <Toaster position="top-right" />
+      <RouterProvider router={router} />
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+        }}
+      />
     </QueryClientProvider>
   );
 }

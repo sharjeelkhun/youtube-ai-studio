@@ -1,6 +1,5 @@
 import { VideoData } from '../types/youtube';
 import { fetchWithAuth, YOUTUBE_API_BASE } from './api';
-import { getMockAnalytics } from './analytics';
 import toast from 'react-hot-toast';
 
 export async function getChannelStats(accessToken: string) {
@@ -11,7 +10,11 @@ export async function getChannelStats(accessToken: string) {
   try {
     const response = await fetchWithAuth(
       `${YOUTUBE_API_BASE}/channels?part=statistics&mine=true`,
-      {},
+      {
+        headers: {
+          'Accept': 'application/json',
+        }
+      },
       accessToken
     );
 
@@ -19,19 +22,12 @@ export async function getChannelStats(accessToken: string) {
       throw new Error('No channel data found');
     }
 
-    return {
-      subscriberCount: response.items[0].statistics.subscriberCount || '0',
-      videoCount: response.items[0].statistics.videoCount || '0',
-      viewCount: response.items[0].statistics.viewCount || '0',
-    };
-  } catch (error) {
+    return response.items[0].statistics;
+  } catch (error: any) {
     console.error('Error fetching channel stats:', error);
-    throw error;
+    toast.error('Failed to fetch channel statistics');
+    throw new Error(error.message || 'Failed to fetch channel statistics');
   }
-}
-
-export async function getChannelAnalytics(accessToken: string) {
-  return getMockAnalytics();
 }
 
 export async function getChannelVideos(accessToken: string): Promise<VideoData[]> {
@@ -42,7 +38,11 @@ export async function getChannelVideos(accessToken: string): Promise<VideoData[]
   try {
     const channelResponse = await fetchWithAuth(
       `${YOUTUBE_API_BASE}/channels?part=contentDetails&mine=true`,
-      {},
+      {
+        headers: {
+          'Accept': 'application/json',
+        }
+      },
       accessToken
     );
     
@@ -51,40 +51,65 @@ export async function getChannelVideos(accessToken: string): Promise<VideoData[]
     }
 
     const uploadsPlaylistId = channelResponse.items[0].contentDetails.relatedPlaylists.uploads;
+    let allVideos: any[] = [];
+    let nextPageToken: string | undefined;
 
-    const videosResponse = await fetchWithAuth(
-      `${YOUTUBE_API_BASE}/playlistItems?part=snippet,contentDetails&maxResults=50&playlistId=${uploadsPlaylistId}`,
-      {},
-      accessToken
-    );
+    // Fetch all videos using pagination
+    do {
+      const videosResponse = await fetchWithAuth(
+        `${YOUTUBE_API_BASE}/playlistItems?part=snippet,contentDetails&maxResults=50&playlistId=${uploadsPlaylistId}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+          }
+        },
+        accessToken
+      );
 
-    if (!videosResponse.items) {
-      return [];
+      if (!videosResponse.items) break;
+
+      allVideos = [...allVideos, ...videosResponse.items];
+      nextPageToken = videosResponse.nextPageToken;
+    } while (nextPageToken);
+
+    // Process videos in batches of 50 (YouTube API limit)
+    const processedVideos: VideoData[] = [];
+    for (let i = 0; i < allVideos.length; i += 50) {
+      const batch = allVideos.slice(i, i + 50);
+      const videoIds = batch.map(item => item.contentDetails.videoId).join(',');
+
+      const detailsResponse = await fetchWithAuth(
+        `${YOUTUBE_API_BASE}/videos?part=statistics,snippet&id=${videoIds}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+          }
+        },
+        accessToken
+      );
+
+      const processedBatch = batch.map((item: any, index: number) => {
+        const details = detailsResponse.items[index];
+        return {
+          id: item.contentDetails.videoId,
+          title: item.snippet.title,
+          description: item.snippet.description,
+          thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+          views: details?.statistics?.viewCount || '0',
+          likes: details?.statistics?.likeCount || '0',
+          uploadDate: item.snippet.publishedAt,
+          tags: details?.snippet?.tags || []
+        };
+      });
+
+      processedVideos.push(...processedBatch);
     }
 
-    const videoIds = videosResponse.items
-      .map((item: any) => item.contentDetails.videoId)
-      .join(',');
-
-    const statsResponse = await fetchWithAuth(
-      `${YOUTUBE_API_BASE}/videos?part=statistics&id=${videoIds}`,
-      {},
-      accessToken
-    );
-
-    return videosResponse.items.map((item: any, index: number) => ({
-      id: item.contentDetails.videoId,
-      title: item.snippet.title,
-      description: item.snippet.description,
-      thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
-      views: statsResponse.items[index]?.statistics?.viewCount || '0',
-      likes: statsResponse.items[index]?.statistics?.likeCount || '0',
-      uploadDate: item.snippet.publishedAt,
-      tags: item.snippet.tags || []
-    }));
-  } catch (error) {
+    return processedVideos;
+  } catch (error: any) {
     console.error('Error fetching videos:', error);
-    throw error;
+    toast.error('Failed to fetch videos from YouTube');
+    throw new Error(error.message || 'Failed to fetch videos');
   }
 }
 
@@ -102,6 +127,9 @@ export async function updateVideoThumbnail(videoId: string, thumbnailFile: File,
       {
         method: 'POST',
         body: formData,
+        headers: {
+          'Accept': 'application/json',
+        }
       },
       accessToken
     );

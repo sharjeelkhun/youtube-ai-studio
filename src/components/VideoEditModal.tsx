@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Wand2, Loader2 } from 'lucide-react';
 import { updateVideoDetails } from '../services/videoEditor';
 import { useAuthStore } from '../store/authStore';
 import { VideoData } from '../types/youtube';
+import { VideoDetailsForm } from './forms/VideoDetailsForm';
+import { getOptimizedMetadata, analyzeSEO } from '../services/ai';
+import { aiService } from '../services/ai/service';
+import { SEOAnalysisPanel } from './video/SEOAnalysisPanel';
+import toast from 'react-hot-toast';
+import { refreshSession } from '../services/auth';
 
 interface VideoEditModalProps {
   video: VideoData;
@@ -13,97 +19,130 @@ interface VideoEditModalProps {
 
 export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditModalProps) {
   const { accessToken } = useAuthStore();
-  const [title, setTitle] = useState(video.title);
-  const [description, setDescription] = useState(video.description);
-  const [tags, setTags] = useState(video.tags.join(', '));
   const [isLoading, setIsLoading] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [seoAnalysis, setSeoAnalysis] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    title: video.title,
+    description: video.description,
+    tags: video.tags
+  });
+
+  useEffect(() => {
+    const analyzeSEOScore = async () => {
+      try {
+        const analysis = await analyzeSEO(formData.title, formData.description, formData.tags);
+        setSeoAnalysis(analysis);
+      } catch (error) {
+        console.error('Error analyzing SEO:', error);
+      }
+    };
+    analyzeSEOScore();
+  }, [formData]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!accessToken) return;
+  const handleSubmit = async (data: { title: string; description: string; tags: string[] }) => {
+    if (!accessToken || !refreshSession()) {
+      toast.error('Please sign in to update video details');
+      return;
+    }
 
     setIsLoading(true);
     try {
-      await updateVideoDetails(video.id, accessToken, {
-        title,
-        description,
-        tags: tags.split(',').map(tag => tag.trim()),
-      });
+      await updateVideoDetails(video.id, accessToken, data);
       onUpdate();
       onClose();
-    } catch (error) {
+      toast.success('Video details updated successfully');
+    } catch (error: any) {
       console.error('Failed to update video:', error);
+      toast.error(error.message || 'Failed to update video details');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleOptimize = async () => {
+    if (!aiService.hasActiveProvider()) {
+      toast.error('Please configure an AI provider in Settings');
+      return;
+    }
+
+    setIsOptimizing(true);
+    try {
+      const optimizedData = await getOptimizedMetadata({
+        ...video,
+        ...formData
+      });
+      
+      setFormData(optimizedData);
+      
+      // Get new SEO analysis for the optimized content
+      const newAnalysis = await analyzeSEO(
+        optimizedData.title,
+        optimizedData.description,
+        optimizedData.tags
+      );
+      setSeoAnalysis(newAnalysis);
+      
+      toast.success('Content optimized successfully! Review and save the changes.');
+    } catch (error: any) {
+      console.error('Failed to optimize video:', error);
+      toast.error(error.message || 'Failed to optimize video details');
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-2xl p-6">
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-white rounded-lg w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">Edit Video Details</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleOptimize}
+              disabled={isOptimizing}
+              className="flex items-center gap-2 px-4 py-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isOptimizing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Wand2 className="w-4 h-4" />
+              )}
+              {isOptimizing ? 'Optimizing...' : 'AI Optimize'}
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            <div className="mb-6">
+              <img
+                src={video.thumbnail}
+                alt={video.title}
+                className="w-full aspect-video object-cover rounded-lg"
+              />
+            </div>
+
+            <VideoDetailsForm
+              video={{ ...video, ...formData }}
+              onSubmit={handleSubmit}
+              onCancel={onClose}
+              isLoading={isLoading}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={5}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
+            {seoAnalysis && <SEOAnalysisPanel analysis={seoAnalysis} />}
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tags (comma-separated)
-            </label>
-            <input
-              type="text"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isLoading ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

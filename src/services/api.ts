@@ -10,7 +10,7 @@ export async function refreshToken() {
     throw new Error('Google Client ID is not configured');
   }
 
-  const redirectUri = 'https://youtube-ai-studio.netlify.app';
+  const redirectUri = window.location.origin;
   const scope = [
     'https://www.googleapis.com/auth/youtube.readonly',
     'https://www.googleapis.com/auth/youtube.upload',
@@ -23,6 +23,7 @@ export async function refreshToken() {
   authUrl.searchParams.append('response_type', 'token');
   authUrl.searchParams.append('scope', scope);
   authUrl.searchParams.append('include_granted_scopes', 'true');
+  authUrl.searchParams.append('access_type', 'offline');
   authUrl.searchParams.append('prompt', 'consent');
 
   window.location.href = authUrl.toString();
@@ -36,10 +37,12 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}, acce
   const headers = new Headers(options.headers);
   headers.set('Authorization', `Bearer ${accessToken}`);
   headers.set('Accept', 'application/json');
+  headers.set('Content-Type', 'application/json');
 
   const config = {
     ...options,
-    headers
+    headers,
+    mode: 'cors' as RequestMode,
   };
 
   try {
@@ -60,9 +63,9 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}, acce
     }
 
     return response.json();
-  } catch (error) {
+  } catch (error: any) {
     console.error('API request failed:', error);
-    throw error;
+    throw new Error(error.message || 'Failed to fetch data');
   }
 }
 

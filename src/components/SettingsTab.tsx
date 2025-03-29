@@ -1,94 +1,113 @@
-import React from 'react';
-import { useAuthStore } from '../store/authStore';
-import { Settings, User, Bell, Shield, Palette, LogOut } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Wand2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { APIKeyInput } from './settings/APIKeyInput';
+import { aiService } from '../services/ai/service';
+import { useAPIKeyStore } from '../store/apiKeyStore';
+import toast from 'react-hot-toast';
+
+const aiProviders = [
+  {
+    id: 'cohere',
+    name: 'Cohere',
+    description: 'Required for SEO analysis and content optimization',
+    setupUrl: 'https://dashboard.cohere.ai/api-keys',
+    freeTier: 'Free tier: 5M tokens per month',
+    icon: '⚡'
+  }
+];
 
 export function SettingsTab() {
-  const { logout, accessToken } = useAuthStore();
+  const { setKey, getKey } = useAPIKeyStore();
+  const [selectedProvider, setSelectedProvider] = useState<string>(aiService.getCurrentProvider() || 'cohere');
+  const [apiKeys, setApiKeys] = useState({
+    cohere: getKey('cohere') || ''
+  });
 
-  const settings = [
-    {
-      icon: User,
-      title: 'Account Settings',
-      description: 'Manage your YouTube account information and preferences',
-      href: 'https://studio.youtube.com/channel/account',
-    },
-    {
-      icon: Bell,
-      title: 'Notifications',
-      description: 'Configure your notification preferences for uploads and interactions',
-      href: 'https://studio.youtube.com/channel/notifications',
-    },
-    {
-      icon: Shield,
-      title: 'Privacy & Security',
-      description: 'Control your privacy settings and security options for your channel',
-      href: 'https://studio.youtube.com/channel/privacy',
-    },
-    {
-      icon: Palette,
-      title: 'Channel Customization',
-      description: 'Customize your channel layout, branding, and basic info',
-      href: 'https://studio.youtube.com/channel/customization',
-    },
-  ];
+  useEffect(() => {
+    // Show a toast message if no API key is configured
+    if (!getKey('cohere')) {
+      toast('Please configure your Cohere API key to enable AI features', {
+        icon: '⚠️',
+        duration: 5000,
+        id: 'api-key-required'
+      });
+    }
+  }, [getKey]);
 
-  if (!accessToken) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-        <div className="text-center">
-          <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign in Required</h2>
-          <p className="text-gray-600">Please sign in to access your settings</p>
-        </div>
-      </div>
-    );
-  }
+  const handleKeyChange = (provider: string, value: string) => {
+    setApiKeys(prev => ({ ...prev, [provider]: value }));
+  };
+
+  const handleKeySave = (provider: string) => {
+    const key = apiKeys[provider as keyof typeof apiKeys];
+    if (!key) {
+      toast.error(`Please enter a valid API key for ${provider}`);
+      return;
+    }
+
+    setKey(provider, key);
+    if (aiService.setProvider(provider as 'cohere')) {
+      setSelectedProvider(provider);
+      toast.success(`${provider} API key saved successfully`);
+    }
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-4xl mx-auto space-y-6 p-6"
+      className="max-w-4xl mx-auto space-y-8 p-6"
     >
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600 mt-2">Manage your YouTube AI Studio preferences</p>
-      </div>
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="flex items-center gap-2 mb-6">
+          <Wand2 className="w-6 h-6 text-purple-600" />
+          <h2 className="text-2xl font-semibold">AI Provider Configuration</h2>
+        </div>
 
-      <div className="grid gap-6">
-        {settings.map((setting, index) => (
-          <motion.a
-            key={index}
-            href={setting.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-red-50 rounded-lg">
-                <setting.icon className="w-6 h-6 text-red-600" />
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-8">
+          <p className="text-yellow-800">
+            <strong>Important:</strong> A Cohere API key is required for SEO analysis and content optimization features.
+            Please configure your API key below to enable all functionality.
+          </p>
+        </div>
+
+        <div className="space-y-8">
+          {aiProviders.map((provider) => (
+            <div key={provider.id} className="border-b pb-8 last:border-0">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{provider.icon}</span>
+                    <h3 className="text-lg font-semibold">{provider.name}</h3>
+                  </div>
+                  <p className="text-gray-600 mt-1">{provider.description}</p>
+                  <p className="text-sm text-green-600 font-medium mt-2">{provider.freeTier}</p>
+                </div>
+                <a
+                  href={provider.setupUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  Get API Key
+                </a>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-1">{setting.title}</h3>
-                <p className="text-gray-600">{setting.description}</p>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  API Key
+                </label>
+                <APIKeyInput
+                  value={apiKeys[provider.id]}
+                  onChange={(value) => handleKeyChange(provider.id, value)}
+                  onSave={() => handleKeySave(provider.id)}
+                  placeholder={`Enter your ${provider.name} API key`}
+                />
               </div>
             </div>
-          </motion.a>
-        ))}
-      </div>
-
-      <div className="mt-8 pt-8 border-t">
-        <button
-          onClick={logout}
-          className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-        >
-          <LogOut className="w-5 h-5" />
-          Sign Out
-        </button>
+          ))}
+        </div>
       </div>
     </motion.div>
   );

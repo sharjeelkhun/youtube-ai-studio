@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { getVideoSuggestions } from '../services/ai';
 import { VideoData } from '../types/youtube';
-import { checkRequiredEnv } from '../config/env';
+import { aiService } from '../services/ai/service';
 
 interface VideoSuggestionsModalProps {
   video: VideoData;
@@ -15,7 +15,7 @@ export function VideoSuggestionsModal({ video, isOpen, onClose }: VideoSuggestio
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isOpen && checkRequiredEnv('gemini')) {
+    if (isOpen && aiService.hasActiveProvider()) {
       setLoading(true);
       getVideoSuggestions({
         title: video.title,
@@ -41,10 +41,10 @@ export function VideoSuggestionsModal({ video, isOpen, onClose }: VideoSuggestio
           </button>
         </div>
 
-        {!checkRequiredEnv('gemini') ? (
+        {!aiService.hasActiveProvider() ? (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <p className="text-yellow-700">
-              Please configure your Google Gemini API key to get AI-powered suggestions.
+              Please configure an AI provider in Settings to get AI-powered suggestions.
             </p>
           </div>
         ) : loading ? (
