@@ -54,6 +54,9 @@ export async function analyzeSEO(title: string, description: string, tags: strin
   }
 }
 
+// Wrap analyzeSEO with throttle to limit requests
+export const throttledAnalyzeSEO = throttle(analyzeSEO, 1000); // Limit to 1 request per second
+
 export async function getOptimizedMetadata(videoData: { 
   title: string; 
   description: string; 
