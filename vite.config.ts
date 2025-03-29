@@ -9,7 +9,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ['axios'], // Mark axios as an external dependency
+      // Remove axios from external dependencies
     },
   },
 });
