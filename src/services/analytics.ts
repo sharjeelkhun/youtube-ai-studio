@@ -31,10 +31,16 @@ export async function getChannelAnalytics(accessToken: string, videos: VideoData
   }
 
   try {
+    // Debugging input data
+    console.log('Videos:', videos);
+
     // Sort videos by date
     const sortedVideos = [...videos].sort((a, b) => 
       new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
     );
+
+    // Debugging sorted videos
+    console.log('Sorted Videos:', sortedVideos);
 
     // Calculate total likes
     const totalLikes = sortedVideos.reduce((sum, video) => 
@@ -56,6 +62,10 @@ export async function getChannelAnalytics(accessToken: string, videos: VideoData
       }
     );
 
+    // Debugging periods
+    console.log('Current Period Videos:', currentPeriodVideos);
+    console.log('Previous Period Videos:', previousPeriodVideos);
+
     // Calculate metrics for both periods
     const currentViews = currentPeriodVideos.reduce((sum, video) => 
       sum + parseInt(video.views || '0'), 0
@@ -70,6 +80,10 @@ export async function getChannelAnalytics(accessToken: string, videos: VideoData
     const previousLikes = previousPeriodVideos.reduce((sum, video) => 
       sum + parseInt(video.likes || '0'), 0
     );
+
+    // Debugging calculated metrics
+    console.log('Current Views:', currentViews, 'Previous Views:', previousViews);
+    console.log('Current Likes:', currentLikes, 'Previous Likes:', previousLikes);
 
     // Calculate growth percentages
     const viewsGrowth = calculateGrowth(previousViews, currentViews);
@@ -91,6 +105,12 @@ export async function getChannelAnalytics(accessToken: string, videos: VideoData
       ),
       100
     );
+
+    // Debugging growth percentages
+    console.log('Views Growth:', viewsGrowth);
+    console.log('Likes Growth:', likesGrowth);
+    console.log('Video Growth:', videoGrowth);
+    console.log('Subscriber Growth:', subscriberGrowth);
 
     return {
       viewsGrowth,
