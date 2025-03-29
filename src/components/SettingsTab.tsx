@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wand2 } from 'lucide-react';
+import { Wand2, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { APIKeyInput } from './settings/APIKeyInput';
 import { aiService } from '../services/ai/service';
@@ -81,6 +81,15 @@ export function SettingsTab() {
     }
   };
 
+  const handleSelectProvider = (providerId: string) => {
+    if (aiService.setProvider(providerId as 'cohere' | 'openai' | 'huggingface')) {
+      setSelectedProvider(providerId);
+      toast.success(`${providerId} set as active AI provider`);
+    } else {
+      toast.error(`Failed to set ${providerId} as active provider. Please check API key.`);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -95,8 +104,8 @@ export function SettingsTab() {
 
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-8">
           <p className="text-yellow-800">
-            <strong>Important:</strong> A Cohere API key is required for SEO analysis and content optimization features.
-            Please configure your API key below to enable all functionality.
+            <strong>Important:</strong> Configure at least one AI provider to enable features.
+            Multiple providers help avoid rate limits.
           </p>
         </div>
 
@@ -104,22 +113,38 @@ export function SettingsTab() {
           {aiProviders.map((provider) => (
             <div key={provider.id} className="border-b pb-8 last:border-0">
               <div className="flex items-start justify-between mb-4">
-                <div>
+                <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{provider.icon}</span>
                     <h3 className="text-lg font-semibold">{provider.name}</h3>
+                    {selectedProvider === provider.id && (
+                      <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        Active
+                      </span>
+                    )}
                   </div>
                   <p className="text-gray-600 mt-1">{provider.description}</p>
                   <p className="text-sm text-green-600 font-medium mt-2">{provider.freeTier}</p>
                 </div>
-                <a
-                  href={provider.setupUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                >
-                  Get API Key
-                </a>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={provider.setupUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    Get API Key
+                  </a>
+                  {apiKeys[provider.id] && selectedProvider !== provider.id && (
+                    <button
+                      onClick={() => handleSelectProvider(provider.id)}
+                      className="px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors"
+                    >
+                      Make Active
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="mt-4">
