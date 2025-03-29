@@ -106,17 +106,6 @@ export function Dashboard() {
           value={totalSubscribers.toLocaleString()}
           trend="neutral"
         />
-        <StatsCard
-          title="Subscriber Growth"
-          value={
-            hasData
-              ? subscriberGrowth >= 0
-                ? `Up ${subscriberGrowth.toFixed(2)}%`
-                : `Down ${Math.abs(Number(subscriberGrowth.toFixed(2)))}%`
-              : 'No data'
-          }
-          trend={hasData ? (subscriberGrowth >= 0 ? 'up' : 'down') : 'neutral'}
-        />
       </div>
 
       {/* Fallback Message */}

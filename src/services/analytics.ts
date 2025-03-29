@@ -99,12 +99,8 @@ export async function getChannelAnalytics(
       0
     );
 
-    // Placeholder logic for subscribers (replace with actual subscriber data if available)
+    // Calculate total subscribers
     const currentSubscribers = currentPeriodVideos.reduce(
-      (sum, video) => sum + parseInt(video.subscribers || '0'),
-      0
-    );
-    const previousSubscribers = previousPeriodVideos.reduce(
       (sum, video) => sum + parseInt(video.subscribers || '0'),
       0
     );
@@ -112,13 +108,13 @@ export async function getChannelAnalytics(
     // Debugging calculated metrics
     console.log('Current Views:', currentViews, 'Previous Views:', previousViews);
     console.log('Current Likes:', currentLikes, 'Previous Likes:', previousLikes);
-    console.log('Current Subscribers:', currentSubscribers, 'Previous Subscribers:', previousSubscribers);
+    console.log('Current Subscribers:', currentSubscribers);
 
     // Calculate growth percentages
     const viewsGrowth = calculateGrowth(previousViews, currentViews);
     const likesGrowth = calculateGrowth(previousLikes, currentLikes);
     const videoGrowth = calculateGrowth(previousPeriodVideos.length, currentPeriodVideos.length);
-    const subscriberGrowth = calculateGrowth(previousSubscribers, currentSubscribers);
+    const subscriberGrowth = calculateGrowth(0, currentSubscribers); // Updated calculation
 
     // Debugging growth percentages
     console.log('Views Growth:', viewsGrowth);
