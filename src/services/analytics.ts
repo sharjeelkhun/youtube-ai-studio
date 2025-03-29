@@ -1,4 +1,5 @@
 import { VideoData } from '../types/youtube';
+import { getChannelSubscribers } from './youtube';
 
 export interface AnalyticsData {
   viewsGrowth: number;
@@ -52,12 +53,15 @@ export async function getChannelAnalytics(
       totalLikes: 0,
       engagementRate: 0,
       analyticsData: [],
-      totalViews: 0, // Include total views in the default return
-      totalSubscribers: 0, // Default to 0
+      totalViews: 0,
+      totalSubscribers: 0,
     };
   }
 
   try {
+    // Fetch total subscribers
+    const totalSubscribers = await getChannelSubscribers(accessToken);
+
     // Handle "Lifetime" filter
     let currentPeriodVideos = videos;
     let previousPeriodVideos: VideoData[] = [];
@@ -75,10 +79,6 @@ export async function getChannelAnalytics(
         return uploadDate >= previousRangeStart && uploadDate < rangeStart;
       });
     }
-
-    // Debugging periods
-    console.log('Current Period Videos:', currentPeriodVideos);
-    console.log('Previous Period Videos:', previousPeriodVideos);
 
     // Calculate metrics for both periods
     const currentViews = currentPeriodVideos.reduce(
@@ -99,28 +99,20 @@ export async function getChannelAnalytics(
       0
     );
 
-    // Calculate total subscribers
-    const currentSubscribers = currentPeriodVideos.reduce(
-      (sum, video) => sum + parseInt(video.subscribers || '0'),
-      0
-    );
-
     // Debugging calculated metrics
     console.log('Current Views:', currentViews, 'Previous Views:', previousViews);
     console.log('Current Likes:', currentLikes, 'Previous Likes:', previousLikes);
-    console.log('Current Subscribers:', currentSubscribers);
+    console.log('Total Subscribers:', totalSubscribers);
 
     // Calculate growth percentages
     const viewsGrowth = calculateGrowth(previousViews, currentViews);
     const likesGrowth = calculateGrowth(previousLikes, currentLikes);
     const videoGrowth = calculateGrowth(previousPeriodVideos.length, currentPeriodVideos.length);
-    const subscriberGrowth = calculateGrowth(0, currentSubscribers); // Updated calculation
 
     // Debugging growth percentages
     console.log('Views Growth:', viewsGrowth);
     console.log('Likes Growth:', likesGrowth);
     console.log('Video Growth:', videoGrowth);
-    console.log('Subscriber Growth:', subscriberGrowth);
 
     // Calculate engagement rate
     const totalViews = currentViews; // Total views for the current period
@@ -128,14 +120,14 @@ export async function getChannelAnalytics(
 
     return {
       viewsGrowth,
-      subscriberGrowth,
+      subscriberGrowth: 0, // Placeholder logic for subscriber growth
       likesGrowth,
       videoGrowth,
       totalLikes: currentLikes,
       engagementRate,
       analyticsData: currentPeriodVideos,
-      totalViews, // Include total views in the returned data
-      totalSubscribers: currentSubscribers, // Include total subscribers
+      totalViews,
+      totalSubscribers, // Include total subscribers
     };
   } catch (error) {
     console.error('Error calculating analytics:', error);

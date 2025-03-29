@@ -59,11 +59,7 @@ export function Dashboard() {
   const hasData = analytics && analytics.analyticsData?.length > 0;
 
   // Provide default values for undefined properties
-  const totalViews = analytics?.totalViews ?? 0;
-  const totalLikes = analytics?.totalLikes ?? 0;
-  const engagementRate = analytics?.engagementRate ?? 0;
   const totalSubscribers = analytics?.totalSubscribers ?? 0;
-  const subscriberGrowth = analytics?.subscriberGrowth ?? 0;
 
   return (
     <div className="space-y-6">
@@ -85,25 +81,25 @@ export function Dashboard() {
       </div>
 
       {/* Summary Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <StatsCard
+          title="Total Subscribers"
+          value={totalSubscribers.toLocaleString()}
+          trend="neutral"
+        />
         <StatsCard
           title="Total Views"
-          value={totalViews.toLocaleString()}
+          value={(analytics?.totalViews ?? 0).toLocaleString()}
           trend="neutral"
         />
         <StatsCard
           title="Total Likes"
-          value={totalLikes.toLocaleString()}
+          value={(analytics?.totalLikes ?? 0).toLocaleString()}
           trend="neutral"
         />
         <StatsCard
           title="Engagement Rate"
-          value={`${engagementRate.toFixed(2)}%`}
-          trend="neutral"
-        />
-        <StatsCard
-          title="Total Subscribers"
-          value={totalSubscribers.toLocaleString()}
+          value={`${(analytics?.engagementRate ?? 0).toFixed(2)}%`}
           trend="neutral"
         />
       </div>
@@ -132,12 +128,12 @@ export function Dashboard() {
           title="Subscriber Growth"
           value={
             hasData
-              ? subscriberGrowth >= 0
-                ? `Up ${subscriberGrowth.toFixed(2)}%`
-                : `Down ${Math.abs(Number(subscriberGrowth.toFixed(2)))}%`
+              ? (analytics.subscriberGrowth ?? 0) >= 0
+                ? `Up ${(analytics.subscriberGrowth ?? 0).toFixed(2)}%`
+                : `Down ${Math.abs(Number((analytics.subscriberGrowth ?? 0).toFixed(2)))}%`
               : 'No data'
           }
-          trend={hasData ? (subscriberGrowth >= 0 ? 'up' : 'down') : 'neutral'}
+          trend={hasData ? ((analytics.subscriberGrowth ?? 0) >= 0 ? 'up' : 'down') : 'neutral'}
         />
         <StatsCard
           title="Likes Growth"

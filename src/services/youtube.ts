@@ -1,6 +1,7 @@
 import { VideoData } from '../types/youtube';
 import { fetchWithAuth, YOUTUBE_API_BASE } from './api';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 export async function getChannelStats(accessToken: string) {
   if (!accessToken) {
@@ -153,4 +154,24 @@ export async function getAISuggestions(videoId: string, accessToken: string) {
   }
 
   return response.json();
+}
+
+export async function getChannelSubscribers(accessToken: string): Promise<number> {
+  try {
+    const response = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
+      params: {
+        part: 'statistics',
+        mine: true,
+      },
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const channel = response.data.items[0];
+    return parseInt(channel.statistics.subscriberCount || '0');
+  } catch (error) {
+    console.error('Error fetching channel subscribers:', error);
+    return 0; // Return 0 if there's an error
+  }
 }
