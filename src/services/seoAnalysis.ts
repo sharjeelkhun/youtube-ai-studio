@@ -1,5 +1,10 @@
-export function parseSEOAnalysis(rawData: string) {
+export function parseSEOAnalysis(rawData: string | object) {
   try {
+    // If rawData is already an object, return it directly
+    if (typeof rawData === 'object') {
+      return rawData;
+    }
+
     // Extract JSON object from the raw string
     const jsonStart = rawData.indexOf('{');
     const jsonEnd = rawData.lastIndexOf('}');

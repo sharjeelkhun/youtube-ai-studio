@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { SEOScoreIndicator } from './video/SEOScoreIndicator';
 import { analyzeSEO } from '../services/ai';
+import { parseSEOAnalysis } from '../services/seoAnalysis';
 import { useAPIKeyStore } from '../store/apiKeyStore';
 import { useQuery } from 'react-query';
 import toast from 'react-hot-toast';
@@ -19,7 +20,7 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const { getKey } = useAPIKeyStore();
   const cohereKey = getKey('cohere');
 
-  const { data: seoScore, isLoading, error } = useQuery(
+  const { data: seoScore, isLoading } = useQuery(
     ['seo-score', video.id],
     async () => {
       if (!cohereKey) {
@@ -27,9 +28,13 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
         return null;
       }
       try {
-        const analysis = await analyzeSEO(video.title, video.description, video.tags);
-        console.log('SEO Analysis Response:', analysis); // Debugging response
-        return analysis.score;
+        const rawResponse = await analyzeSEO(video.title, video.description, video.tags);
+        console.log('Raw Response:', rawResponse); // Debugging the response
+
+        const parsedResponse =
+          typeof rawResponse === 'string' ? parseSEOAnalysis(rawResponse) : rawResponse;
+
+        return parsedResponse?.analysis?.title?.score ?? null;
       } catch (error) {
         console.error('Error calculating SEO score:', error);
         toast.error('Failed to analyze SEO. Please try again later.');
@@ -44,10 +49,6 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       refetchOnWindowFocus: false,
     }
   );
-
-  if (error) {
-    console.error('Error in SEO Query:', error);
-  }
 
   return (
     <motion.div
@@ -72,12 +73,12 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
           </div>
         )}
       </div>
-      
+
       <div className="p-4">
         <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
           {video.title}
         </h3>
-        
+
         <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
           <span>{format(new Date(video.uploadDate), 'MMM d, yyyy')}</span>
           <span>{parseInt(video.views).toLocaleString()} views</span>
@@ -92,7 +93,7 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
             <Edit2 className="w-4 h-4" />
             Edit
           </button>
-          
+
           <button
             onClick={onSuggestions}
             className="flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -100,7 +101,7 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
             <Wand2 className="w-4 h-4" />
             Suggestions
           </button>
-          
+
           <a
             href={`https://youtube.com/watch?v=${video.id}`}
             target="_blank"
