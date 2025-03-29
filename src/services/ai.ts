@@ -24,13 +24,13 @@ export async function analyzeSEO(title: string, description: string, tags: strin
 
   try {
     const response = await fetch('https://api.cohere.ai/analyze-seo', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${cohereKey}`, // Ensure the API key is sent
-      },
-      body: JSON.stringify({ title, description, tags }),
-    });
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${cohereKey}`, // Ensure the API key is sent
+          },
+          body: JSON.stringify({ title, description, tags }),
+        });
 
     console.log('API Response Status:', response.status); // Debug log
     console.log('API Response:', {
