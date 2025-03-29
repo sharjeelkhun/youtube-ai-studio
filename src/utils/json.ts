@@ -1,16 +1,15 @@
 export function sanitizeJsonString(rawString: string): string {
   try {
-    const jsonStart = rawString.indexOf('{');
+    const jsonStart = rawString.indexOf('{');]*}/); // Match the first JSON object in the string
     const jsonEnd = rawString.lastIndexOf('}');
-    if (jsonStart === -1 || jsonEnd === -1) {
+    if (jsonStart === -1 || jsonEnd === -1) {ound');
       throw new Error('No valid JSON object found');
-    }
+    }eturn jsonMatch[0]; // Return the matched JSON object
     return rawString.slice(jsonStart, jsonEnd + 1);
-  } catch (error) {
+  } catch (error) {Error sanitizing JSON string:', error);
     console.error('Error sanitizing JSON string:', error);
     throw new Error('Failed to sanitize JSON string');
   }
-}
 
 export function tryParseJson<T>(jsonString: string, fallback: T): T {
   try {

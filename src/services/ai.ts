@@ -41,7 +41,12 @@ export async function analyzeSEO(title: string, description: string, tags: strin
       handleAPIError(response);
     }
 
-    const data = tryParseJson(responseBody, {});
+    const data = tryParseJson(responseBody, {}) as SEOAnalysis;
+
+    if (!data || !data.score || !data.titleAnalysis || !data.descriptionAnalysis || !data.tagsAnalysis || !data.overallSuggestions) {
+      throw new Error('Invalid SEOAnalysis data received from API.');
+    }
+
     seoCache.set(cacheKey, data);
     return data;
   } catch (error: any) {
