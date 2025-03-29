@@ -56,7 +56,16 @@ export function Dashboard() {
     );
   }
 
-  const hasData = analytics && analytics.analyticsData.length > 0;
+  const hasData = analytics && analytics.analyticsData?.length > 0;
+
+  // Provide default values for undefined properties
+  const totalViews = analytics?.totalViews ?? 0;
+  const totalLikes = analytics?.totalLikes ?? 0;
+  const engagementRate = analytics?.engagementRate ?? 0;
+  const viewsGrowth = analytics?.viewsGrowth ?? 0;
+  const subscriberGrowth = analytics?.subscriberGrowth ?? 0;
+  const likesGrowth = analytics?.likesGrowth ?? 0;
+  const videoGrowth = analytics?.videoGrowth ?? 0;
 
   return (
     <div className="space-y-6">
@@ -81,17 +90,17 @@ export function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatsCard
           title="Total Views"
-          value={hasData ? analytics.totalViews.toLocaleString() : 'No data'}
+          value={totalViews.toLocaleString()}
           trend="neutral"
         />
         <StatsCard
           title="Total Likes"
-          value={hasData ? analytics.totalLikes.toLocaleString() : 'No data'}
+          value={totalLikes.toLocaleString()}
           trend="neutral"
         />
         <StatsCard
           title="Engagement Rate"
-          value={hasData ? `${analytics.engagementRate.toFixed(2)}%` : 'No data'}
+          value={`${engagementRate.toFixed(2)}%`}
           trend="neutral"
         />
       </div>
@@ -109,45 +118,45 @@ export function Dashboard() {
           title="Views Growth"
           value={
             hasData
-              ? analytics.viewsGrowth >= 0
-                ? `Up ${analytics.viewsGrowth.toFixed(2)}%`
-                : `Down ${Math.abs(Number(analytics.viewsGrowth.toFixed(2)))}%`
+              ? viewsGrowth >= 0
+                ? `Up ${viewsGrowth.toFixed(2)}%`
+                : `Down ${Math.abs(Number(viewsGrowth.toFixed(2)))}%`
               : 'No data'
           }
-          trend={hasData ? (analytics.viewsGrowth >= 0 ? 'up' : 'down') : 'neutral'}
+          trend={hasData ? (viewsGrowth >= 0 ? 'up' : 'down') : 'neutral'}
         />
         <StatsCard
           title="Subscriber Growth"
           value={
             hasData
-              ? analytics.subscriberGrowth >= 0
-                ? `Up ${analytics.subscriberGrowth.toFixed(2)}%`
-                : `Down ${Math.abs(Number(analytics.subscriberGrowth.toFixed(2)))}%`
+              ? subscriberGrowth >= 0
+                ? `Up ${subscriberGrowth.toFixed(2)}%`
+                : `Down ${Math.abs(Number(subscriberGrowth.toFixed(2)))}%`
               : 'No data'
           }
-          trend={hasData ? (analytics.subscriberGrowth >= 0 ? 'up' : 'down') : 'neutral'}
+          trend={hasData ? (subscriberGrowth >= 0 ? 'up' : 'down') : 'neutral'}
         />
         <StatsCard
           title="Likes Growth"
           value={
             hasData
-              ? analytics.likesGrowth >= 0
-                ? `Up ${analytics.likesGrowth.toFixed(2)}%`
-                : `Down ${Math.abs(Number(analytics.likesGrowth.toFixed(2)))}%`
+              ? likesGrowth >= 0
+                ? `Up ${likesGrowth.toFixed(2)}%`
+                : `Down ${Math.abs(Number(likesGrowth.toFixed(2)))}%`
               : 'No data'
           }
-          trend={hasData ? (analytics.likesGrowth >= 0 ? 'up' : 'down') : 'neutral'}
+          trend={hasData ? (likesGrowth >= 0 ? 'up' : 'down') : 'neutral'}
         />
         <StatsCard
           title="Video Growth"
           value={
             hasData
-              ? analytics.videoGrowth >= 0
-                ? `Up ${analytics.videoGrowth.toFixed(2)}%`
-                : `Down ${Math.abs(Number(analytics.videoGrowth.toFixed(2)))}%`
+              ? videoGrowth >= 0
+                ? `Up ${videoGrowth.toFixed(2)}%`
+                : `Down ${Math.abs(Number(videoGrowth.toFixed(2)))}%`
               : 'No data'
           }
-          trend={hasData ? (analytics.videoGrowth >= 0 ? 'up' : 'down') : 'neutral'}
+          trend={hasData ? (videoGrowth >= 0 ? 'up' : 'down') : 'neutral'}
         />
       </div>
 
