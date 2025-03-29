@@ -6,6 +6,7 @@ export interface AnalyticsData {
   likesGrowth: number;
   videoGrowth: number;
   totalLikes: number;
+  engagementRate: number; // New metric
   analyticsData: VideoData[];
 }
 
@@ -45,6 +46,7 @@ export async function getChannelAnalytics(
       likesGrowth: 0,
       videoGrowth: 0,
       totalLikes: 0,
+      engagementRate: 0,
       analyticsData: []
     };
   }
@@ -110,12 +112,20 @@ export async function getChannelAnalytics(
     console.log('Video Growth:', videoGrowth);
     console.log('Subscriber Growth:', subscriberGrowth);
 
+    // Calculate engagement rate
+    const totalViews = currentPeriodVideos.reduce(
+      (sum, video) => sum + parseInt(video.views || '0'),
+      0
+    );
+    const engagementRate = totalViews > 0 ? (currentLikes / totalViews) * 100 : 0;
+
     return {
       viewsGrowth,
       subscriberGrowth,
       likesGrowth,
       videoGrowth,
       totalLikes: currentLikes,
+      engagementRate,
       analyticsData: currentPeriodVideos
     };
   } catch (error) {

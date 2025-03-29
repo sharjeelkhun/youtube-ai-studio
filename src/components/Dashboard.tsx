@@ -6,6 +6,8 @@ import { useQuery } from 'react-query';
 import { Loader2 } from 'lucide-react';
 import { StatsCard } from './StatsCard';
 import { PerformanceChart } from './PerformanceChart';
+import { Recommendations } from './Recommendations';
+import { TopVideosChart } from './TopVideosChart';
 
 export function Dashboard() {
   const { accessToken, isAuthenticated } = useAuthStore();
@@ -85,11 +87,20 @@ export function Dashboard() {
           trend={analytics.likesGrowth >= 0 ? 'up' : 'down'}
         />
         <StatsCard
-          title="Video Growth"
-          value={`${analytics.videoGrowth}%`}
-          trend={analytics.videoGrowth >= 0 ? 'up' : 'down'}
+          title="Engagement Rate"
+          value={`${analytics.engagementRate.toFixed(2)}%`}
+          trend={analytics.engagementRate >= 0 ? 'up' : 'down'}
         />
       </div>
+
+      <TopVideosChart
+        videos={analytics.analyticsData.slice(0, 5).map((video) => ({
+          title: video.title,
+          views: parseInt(video.views || '0'),
+        }))}
+      />
+
+      <Recommendations analytics={analytics} />
 
       {analytics.analyticsData.length > 0 && (
         <PerformanceChart data={analytics.analyticsData} />
