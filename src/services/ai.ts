@@ -56,17 +56,13 @@ export async function analyzeSEO(title: string, description: string, tags: strin
     }
 
     try {
-      const data = JSON.parse(responseBody);
+      const data = JSON.parse(responseBody); // Parse the response body as JSON
+      console.log('Parsed API Response Data:', data); // Debug log
       seoCache.set(cacheKey, data); // Cache the response
       return data;
     } catch (error) {
       console.error('Error parsing API response as JSON:', error);
-      return {
-        error: 'Failed to parse API response',
-        title: '',
-        description: '',
-        tags: [],
-      };
+      throw new Error('Failed to parse API response. Please check the API output.');
     }
   } catch (error: any) {
     console.error('Error in analyzeSEO:', error.message || error);

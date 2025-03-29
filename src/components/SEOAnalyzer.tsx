@@ -26,8 +26,14 @@ export function SEOAnalyzer() {
       setAnalysis(result);
       toast.success('Analysis completed successfully!');
     } catch (error: any) {
+      if (error.message.includes('Rate limit exceeded')) {
+        toast.error('You are sending too many requests. Please wait and try again.');
+      } else if (error.message.includes('API endpoint not found')) {
+        toast.error('The API endpoint is incorrect. Please check your configuration.');
+      } else {
+        toast.error('Failed to analyze SEO. Please try again later.');
+      }
       console.error('Error analyzing SEO:', error);
-      toast.error(error.message || 'Failed to analyze SEO. Please try again later.');
     } finally {
       setIsLoading(false);
     }
