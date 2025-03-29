@@ -1,66 +1,112 @@
-import { CohereProvider } from './providers/cohere';
 import { useAPIKeyStore } from '../../store/apiKeyStore';
-import toast from 'react-hot-toast';
+import { AI_PROVIDERS } from '../../config/aiProviders';
 
 class AIService {
-  private cohereProvider: CohereProvider;
-  private currentProvider: 'cohere' | null = null;
+  private currentProvider: string | null = null;
+  private retryCount: number = 0;
+  private maxRetries: number = 3;
 
-  constructor() {
-    this.cohereProvider = new CohereProvider();
-    this.initializeProvider();
-  }
-
-  private initializeProvider() {
-    const { getKey } = useAPIKeyStore.getState();
-    const cohereKey = getKey('cohere');
-    if (cohereKey) {
-      this.setProvider('cohere');
+  async generateContent(prompt: string): Promise<string> {
+    const providers = ['cohere', 'openai', 'huggingface'];
+    
+    for (const provider of providers) {
+      try {
+        const response = await this.tryProvider(provider, prompt);
+        if (response) return response;
+      } catch (error: any) {
+        console.error(`Error with ${provider}:`, error);
+        if (!error.message.includes('Rate limit')) {
+          throw error;
+        }
+        // Continue to next provider if rate limited
+        continue;
+      }
     }
+    
+    throw new Error('All AI providers are rate limited. Please try again later.');
   }
 
-  hasActiveProvider(): boolean {
-    return this.currentProvider !== null;
-  }
-
-  getCurrentProvider(): 'cohere' | null {
-    return this.currentProvider;
-  }
-
-  setProvider(provider: 'cohere'): boolean {
+  private async tryProvider(provider: string, prompt: string): Promise<string> {
     const { getKey } = useAPIKeyStore.getState();
     const apiKey = getKey(provider);
 
     if (!apiKey) {
-      toast.error(`Please configure your ${provider} API key in Settings`);
-      return false;
+      console.log(`No API key for ${provider}, skipping...`);
+      return '';
     }
 
-    try {
-      this.cohereProvider.initialize(apiKey);
-      this.currentProvider = provider;
-      return true;
-    } catch (error) {
-      console.error(`Failed to initialize ${provider}:`, error);
-      return false;
+    switch (provider) {
+      case 'cohere':
+        return this.generateWithCohere(prompt, apiKey);
+      case 'openai':
+        return this.generateWithOpenAI(prompt, apiKey);
+      case 'huggingface':
+        return this.generateWithHuggingFace(prompt, apiKey);
+      default:
+        return '';
     }
   }
 
-  async generateContent(prompt: string): Promise<string> {
-    if (!this.currentProvider) {
-      this.initializeProvider();
+  private async generateWithCohere(prompt: string, apiKey: string): Promise<string> {
+    const response = await fetch(`${AI_PROVIDERS.COHERE.baseUrl}/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'command',
+        prompt,
+        max_tokens: 1000,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Cohere API error: ${response.status}`);
     }
 
-    if (!this.hasActiveProvider()) {
-      throw new Error('Please configure your Cohere API key in Settings');
+    const data = await response.json();
+    return data.generations[0].text;
+  }
+
+  private async generateWithOpenAI(prompt: string, apiKey: string): Promise<string> {
+    const response = await fetch(`${AI_PROVIDERS.OPENAI.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1000,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
-    try {
-      return await this.cohereProvider.generateContent(prompt);
-    } catch (error: any) {
-      console.error('AI generation error:', error);
-      throw new Error(error.message || 'Failed to generate content');
+    const data = await response.json();
+    return data.choices[0].message.content;
+  }
+
+  private async generateWithHuggingFace(prompt: string, apiKey: string): Promise<string> {
+    const response = await fetch(`${AI_PROVIDERS.HUGGINGFACE.baseUrl}/gpt2`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ inputs: prompt }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HuggingFace API error: ${response.status}`);
     }
+
+    const data = await response.json();
+    return data[0].generated_text;
   }
 }
 

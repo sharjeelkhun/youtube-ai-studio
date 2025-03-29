@@ -10,10 +10,26 @@ const aiProviders = [
   {
     id: 'cohere',
     name: 'Cohere',
-    description: 'Required for SEO analysis and content optimization',
+    description: 'Primary provider for SEO analysis and content optimization',
     setupUrl: 'https://dashboard.cohere.ai/api-keys',
     freeTier: 'Free tier: 5M tokens per month',
     icon: '⚡',
+  },
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    description: 'Fallback provider for content generation',
+    setupUrl: 'https://platform.openai.com/account/api-keys',
+    freeTier: 'Free tier: 3M tokens per month',
+    icon: '🤖',
+  },
+  {
+    id: 'huggingface',
+    name: 'HuggingFace',
+    description: 'Secondary fallback for content generation',
+    setupUrl: 'https://huggingface.co/settings/tokens',
+    freeTier: 'Free tier available',
+    icon: '🤗',
   },
 ];
 
@@ -22,6 +38,8 @@ export function SettingsTab() {
   const [selectedProvider, setSelectedProvider] = useState<string>(aiService.getCurrentProvider() || 'cohere');
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({
     cohere: getKey('cohere') || '',
+    openai: getKey('openai') || '',
+    huggingface: getKey('huggingface') || '',
   });
 
   useEffect(() => {
@@ -47,7 +65,7 @@ export function SettingsTab() {
     }
 
     setKey(provider, key);
-    if (aiService.setProvider(provider as 'cohere')) {
+    if (aiService.setProvider(provider as 'cohere' | 'openai' | 'huggingface')) {
       setSelectedProvider(provider);
       toast.success(`${provider} API key saved successfully`);
     } else {
