@@ -7,12 +7,19 @@ import { tryParseJson } from '../utils/json';
 const seoCache = new Map<string, SEOAnalysis>();
 
 export async function analyzeSEO(title: string, description: string, tags: string[]) {
+  const { getKey } = useAPIKeyStore.getState();
+  const cohereKey = getKey('cohere');
+
+  if (!cohereKey) {
+    throw new Error('Cohere API key is missing. Please configure it in settings.');
+  }
+
   try {
     const response = await fetch('https://api.cohere.ai/analyze-seo', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${yourCohereApiKey}`, // Replace with your API key
+        Authorization: `Bearer ${cohereKey}`, // Ensure the API key is sent
       },
       body: JSON.stringify({ title, description, tags }),
     });
@@ -22,11 +29,11 @@ export async function analyzeSEO(title: string, description: string, tags: strin
     }
 
     const data = await response.json();
-    console.log('API Response:', data); // Debugging the API response
+    console.log('API Response:', data); // Debug log
     return data;
   } catch (error) {
     console.error('Error in analyzeSEO:', error);
-    throw error; // Rethrow the error to be handled by the caller
+    throw error;
   }
 }
 
@@ -81,11 +88,18 @@ Return ONLY a JSON object with this structure:
         ? optimizedData.description.trim()
         : videoData.description,
       tags: Array.isArray(optimizedData.tags)
-        ? [...new Set(optimizedData.tags
-            .filter(tag => typeof tag === 'string' && tag.trim())
-            .map(tag => tag.trim()))]
-        : videoData.tags
+        ? [...new Set(
+            (optimizedData.tags as string[]) // Explicitly type as string[]
+              .filter((tag) => typeof tag === 'string' && tag.trim()) // Ensure valid strings
+              .map((tag) => tag.trim()) // Trim whitespace
+          )]
+        : Array.isArray(videoData.tags) // Fallback to videoData.tags if optimizedData.tags is invalid
+        ? videoData.tags
+        : [], // Fallback to an empty array
     };
+
+    console.log('Optimized Tags:', optimizedData.tags); // Debug log
+    console.log('Fallback Tags:', videoData.tags); // Debug log
 
     // Ensure we have meaningful changes
     if (sanitizedData.title === videoData.title &&

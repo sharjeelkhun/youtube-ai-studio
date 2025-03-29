@@ -1,30 +1,25 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import create from 'zustand';
 
-interface APIKeyState {
-  cohereKey: string;
-  setKey: (provider: string, key: string) => void;
-  getKey: (provider: string) => string;
-  clearKey: (provider: string) => void;
+interface APIKeyStore {
+  keys: Record<string, string>;
+  setKey: (keyName: string, keyValue: string) => void;
+  getKey: (keyName: string) => string | undefined;
 }
 
-export const useAPIKeyStore = create<APIKeyState>()(
-  persist(
-    (set, get) => ({
-      cohereKey: '',
-      
-      setKey: (provider, key) => 
-        set({ [`${provider}Key`]: key }),
-      
-      getKey: (provider) => 
-        get()[`${provider}Key` as keyof APIKeyState] as string,
-      
-      clearKey: (provider) =>
-        set({ [`${provider}Key`]: '' }),
-    }),
-    {
-      name: 'api-keys-storage',
-      version: 1
-    }
-  )
-);
+export const useAPIKeyStore = create<APIKeyStore>((set, get) => ({
+  keys: {},
+  setKey: (keyName, keyValue) => {
+    console.log(`Setting API key: ${keyName} = ${keyValue}`); // Debug log
+    set((state) => ({
+      keys: {
+        ...state.keys,
+        [keyName]: keyValue,
+      },
+    }));
+  },
+  getKey: (keyName) => {
+    const key = get().keys[keyName];
+    console.log(`Retrieving API key: ${keyName} = ${key}`); // Debug log
+    return key;
+  },
+}));

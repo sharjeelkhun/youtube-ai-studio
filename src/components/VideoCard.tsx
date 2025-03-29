@@ -19,9 +19,10 @@ interface VideoCardProps {
 export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const { getKey } = useAPIKeyStore();
   const cohereKey = getKey('cohere');
+  console.log('Retrieved Cohere API Key:', cohereKey); // Debug log
 
   const { data: seoScore, isLoading } = useQuery(
-    ['seo-score', video.id],
+    ['seo-score', video.id, cohereKey], // Include cohereKey as a dependency
     async () => {
       if (!cohereKey) {
         toast.error('Cohere API key is missing. Please configure it in settings.');
@@ -44,7 +45,7 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       }
     },
     {
-      enabled: !!cohereKey,
+      enabled: !!cohereKey, // Ensure the query is only enabled when the key is available
       staleTime: 30 * 60 * 1000, // Cache for 30 minutes
       cacheTime: 60 * 60 * 1000, // Keep in cache for 1 hour
       retry: false,
