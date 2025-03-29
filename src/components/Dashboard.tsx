@@ -11,7 +11,7 @@ import { TopVideosChart } from './TopVideosChart';
 
 export function Dashboard() {
   const { accessToken, isAuthenticated } = useAuthStore();
-  const [timeRange, setTimeRange] = useState('3m'); // Default to 3 months
+  const [timeRange, setTimeRange] = useState('6m'); // Default to 6 months
 
   const { data: videos, isLoading: isLoadingVideos, error: videosError } = useQuery(
     ['videos', accessToken],
@@ -61,7 +61,8 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Time Range Filter */}
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">Analytics Overview</h2>
         <select
           value={timeRange}
           onChange={(e) => setTimeRange(e.target.value)}
@@ -74,6 +75,25 @@ export function Dashboard() {
           <option value="1m">Last 1 Month</option>
           <option value="1w">Last Week</option>
         </select>
+      </div>
+
+      {/* Summary Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatsCard
+          title="Total Views"
+          value={hasData ? analytics.totalViews.toLocaleString() : 'No data'}
+          trend="neutral"
+        />
+        <StatsCard
+          title="Total Likes"
+          value={hasData ? analytics.totalLikes.toLocaleString() : 'No data'}
+          trend="neutral"
+        />
+        <StatsCard
+          title="Engagement Rate"
+          value={hasData ? `${analytics.engagementRate.toFixed(2)}%` : 'No data'}
+          trend="neutral"
+        />
       </div>
 
       {/* Fallback Message */}
@@ -119,9 +139,15 @@ export function Dashboard() {
           trend={hasData ? (analytics.likesGrowth >= 0 ? 'up' : 'down') : 'neutral'}
         />
         <StatsCard
-          title="Engagement Rate"
-          value={hasData ? `${analytics.engagementRate.toFixed(2)}%` : 'No data'}
-          trend={hasData ? (analytics.engagementRate >= 0 ? 'up' : 'down') : 'neutral'}
+          title="Video Growth"
+          value={
+            hasData
+              ? analytics.videoGrowth >= 0
+                ? `Up ${analytics.videoGrowth.toFixed(2)}%`
+                : `Down ${Math.abs(Number(analytics.videoGrowth.toFixed(2)))}%`
+              : 'No data'
+          }
+          trend={hasData ? (analytics.videoGrowth >= 0 ? 'up' : 'down') : 'neutral'}
         />
       </div>
 
