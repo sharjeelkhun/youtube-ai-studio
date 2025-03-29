@@ -62,6 +62,7 @@ export function Dashboard() {
   const totalViews = analytics?.totalViews ?? 0;
   const totalLikes = analytics?.totalLikes ?? 0;
   const engagementRate = analytics?.engagementRate ?? 0;
+  const subscriberGrowth = analytics?.subscriberGrowth ?? 0;
 
   return (
     <div className="space-y-6">
@@ -125,12 +126,12 @@ export function Dashboard() {
           title="Subscriber Growth"
           value={
             hasData
-              ? analytics.subscriberGrowth >= 0
-                ? `Up ${analytics.subscriberGrowth.toFixed(2)}%`
-                : `Down ${Math.abs(Number(analytics.subscriberGrowth.toFixed(2)))}%`
+              ? subscriberGrowth >= 0
+                ? `Up ${subscriberGrowth.toFixed(2)}%`
+                : `Down ${Math.abs(Number(subscriberGrowth.toFixed(2)))}%`
               : 'No data'
           }
-          trend={hasData ? (analytics.subscriberGrowth >= 0 ? 'up' : 'down') : 'neutral'}
+          trend={hasData ? (subscriberGrowth >= 0 ? 'up' : 'down') : 'neutral'}
         />
         <StatsCard
           title="Likes Growth"

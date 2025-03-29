@@ -97,19 +97,32 @@ export async function getChannelAnalytics(
       0
     );
 
+    // Placeholder logic for subscribers (replace with actual subscriber data if available)
+    const currentSubscribers = currentPeriodVideos.reduce(
+      (sum, video) => sum + parseInt(video.subscribers || '0'),
+      0
+    );
+    const previousSubscribers = previousPeriodVideos.reduce(
+      (sum, video) => sum + parseInt(video.subscribers || '0'),
+      0
+    );
+
     // Debugging calculated metrics
     console.log('Current Views:', currentViews, 'Previous Views:', previousViews);
     console.log('Current Likes:', currentLikes, 'Previous Likes:', previousLikes);
+    console.log('Current Subscribers:', currentSubscribers, 'Previous Subscribers:', previousSubscribers);
 
     // Calculate growth percentages
     const viewsGrowth = calculateGrowth(previousViews, currentViews);
     const likesGrowth = calculateGrowth(previousLikes, currentLikes);
     const videoGrowth = calculateGrowth(previousPeriodVideos.length, currentPeriodVideos.length);
+    const subscriberGrowth = calculateGrowth(previousSubscribers, currentSubscribers);
 
     // Debugging growth percentages
     console.log('Views Growth:', viewsGrowth);
     console.log('Likes Growth:', likesGrowth);
     console.log('Video Growth:', videoGrowth);
+    console.log('Subscriber Growth:', subscriberGrowth);
 
     // Calculate engagement rate
     const totalViews = currentViews; // Total views for the current period
@@ -117,7 +130,7 @@ export async function getChannelAnalytics(
 
     return {
       viewsGrowth,
-      subscriberGrowth: 0, // Placeholder logic
+      subscriberGrowth,
       likesGrowth,
       videoGrowth,
       totalLikes: currentLikes,
