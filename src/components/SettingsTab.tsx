@@ -82,11 +82,22 @@ export function SettingsTab() {
   };
 
   const handleSelectProvider = (providerId: string) => {
-    if (aiService.setProvider(providerId as 'cohere' | 'openai' | 'huggingface')) {
-      setSelectedProvider(providerId);
-      toast.success(`${providerId} set as active AI provider`);
-    } else {
-      toast.error(`Failed to set ${providerId} as active provider. Please check API key.`);
+    const key = apiKeys[providerId];
+    if (!key) {
+      toast.error(`Please enter a valid API key for ${providerId} first`);
+      return;
+    }
+
+    try {
+      if (aiService.setProvider(providerId as 'cohere' | 'openai' | 'huggingface')) {
+        setSelectedProvider(providerId);
+        toast.success(`${providerId} set as active AI provider`);
+      } else {
+        toast.error(`Failed to set ${providerId} as active provider`);
+      }
+    } catch (error) {
+      console.error('Error setting provider:', error);
+      toast.error('Failed to switch AI provider');
     }
   };
 

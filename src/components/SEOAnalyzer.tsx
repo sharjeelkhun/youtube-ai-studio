@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { analyzeSEO } from '../services/ai';
+import { analyzeSEO, aiService } from '../services/ai';
 import toast from 'react-hot-toast';
 
 export function SEOAnalyzer() {
@@ -16,6 +16,12 @@ export function SEOAnalyzer() {
       return;
     }
 
+
+    if (!aiService.hasActiveProvider()) {
+      toast.error('Please configure an AI provider in Settings');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const result = await analyzeSEO(
@@ -26,14 +32,14 @@ export function SEOAnalyzer() {
       setAnalysis(result);
       toast.success('Analysis completed successfully!');
     } catch (error: any) {
-      if (error.message.includes('Rate limit exceeded')) {
-        toast.error('You are sending too many requests. Please wait and try again.');
-      } else if (error.message.includes('API endpoint not found')) {
-        toast.error('The API endpoint is incorrect. Please check your configuration.');
+      if (error.message.includes('All AI providers')) {
+        toast.error('All AI providers are rate limited. Please try again later.');
+      } else if (error.message.includes('API key')) {
+        toast.error('Please check your API key configuration in Settings.');
       } else {
-        toast.error('Failed to optimize metadata. Please try again later.');
+        toast.error('Failed to analyze SEO. Please try again later.');
       }
-      console.error('Error optimizing metadata:', error);
+      console.error('Error analyzing SEO:', error);
     } finally {
       setIsLoading(false);
     }
