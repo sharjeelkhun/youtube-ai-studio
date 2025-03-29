@@ -85,22 +85,22 @@ export function Dashboard() {
         <StatsCard
           title="Total Subscribers"
           value={totalSubscribers.toLocaleString()}
-          trend="neutral"
+          trend="up" // Use "up" as the default trend for cumulative metrics
         />
         <StatsCard
           title="Total Views"
           value={(analytics?.totalViews ?? 0).toLocaleString()}
-          trend="neutral"
+          trend="up" // Use "up" as the default trend for cumulative metrics
         />
         <StatsCard
           title="Total Likes"
           value={(analytics?.totalLikes ?? 0).toLocaleString()}
-          trend="neutral"
+          trend="up" // Use "up" as the default trend for cumulative metrics
         />
         <StatsCard
           title="Engagement Rate"
           value={`${(analytics?.engagementRate ?? 0).toFixed(2)}%`}
-          trend="neutral"
+          trend="up" // Use "up" as the default trend for cumulative metrics
         />
       </div>
 
@@ -122,7 +122,7 @@ export function Dashboard() {
                 : `Down ${Math.abs(Number(analytics.viewsGrowth.toFixed(2)))}%`
               : 'No data'
           }
-          trend={hasData ? (analytics.viewsGrowth >= 0 ? 'up' : 'down') : 'neutral'}
+          trend={hasData ? (analytics.viewsGrowth >= 0 ? 'up' : 'down') : 'up'}
         />
         <StatsCard
           title="Subscriber Growth"
@@ -133,7 +133,7 @@ export function Dashboard() {
                 : `Down ${Math.abs(Number((analytics.subscriberGrowth ?? 0).toFixed(2)))}%`
               : 'No data'
           }
-          trend={hasData ? ((analytics.subscriberGrowth ?? 0) >= 0 ? 'up' : 'down') : 'neutral'}
+          trend={hasData ? ((analytics.subscriberGrowth ?? 0) >= 0 ? 'up' : 'down') : 'up'}
         />
         <StatsCard
           title="Likes Growth"
@@ -144,7 +144,7 @@ export function Dashboard() {
                 : `Down ${Math.abs(Number(analytics.likesGrowth.toFixed(2)))}%`
               : 'No data'
           }
-          trend={hasData ? (analytics.likesGrowth >= 0 ? 'up' : 'down') : 'neutral'}
+          trend={hasData ? (analytics.likesGrowth >= 0 ? 'up' : 'down') : 'up'}
         />
         <StatsCard
           title="Video Growth"
@@ -155,7 +155,7 @@ export function Dashboard() {
                 : `Down ${Math.abs(Number(analytics.videoGrowth.toFixed(2)))}%`
               : 'No data'
           }
-          trend={hasData ? (analytics.videoGrowth >= 0 ? 'up' : 'down') : 'neutral'}
+          trend={hasData ? (analytics.videoGrowth >= 0 ? 'up' : 'down') : 'up'}
         />
       </div>
 
