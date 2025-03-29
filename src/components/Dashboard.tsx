@@ -56,13 +56,7 @@ export function Dashboard() {
     );
   }
 
-  if (!analytics || !analytics.analyticsData) {
-    return (
-      <div className="text-center text-gray-500">
-        <p>No analytics data available.</p>
-      </div>
-    );
-  }
+  const hasData = analytics && analytics.analyticsData.length > 0;
 
   return (
     <div className="space-y-6">
@@ -82,61 +76,79 @@ export function Dashboard() {
         </select>
       </div>
 
-      {/* Fallback for no data */}
-      {analytics.analyticsData.length === 0 ? (
+      {/* Fallback Message */}
+      {!hasData && (
         <div className="text-center text-gray-500">
-          <p>No uploads found for the selected time range. Try selecting a different range.</p>
+          <p>No uploads found for the selected time range. Please try a different range.</p>
         </div>
+      )}
+
+      {/* Analytics Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard
+          title="Views Growth"
+          value={
+            hasData
+              ? analytics.viewsGrowth >= 0
+                ? `Up ${analytics.viewsGrowth.toFixed(2)}%`
+                : `Down ${Math.abs(Number(analytics.viewsGrowth.toFixed(2)))}%`
+              : 'No data'
+          }
+          trend={hasData ? (analytics.viewsGrowth >= 0 ? 'up' : 'down') : 'neutral'}
+        />
+        <StatsCard
+          title="Subscriber Growth"
+          value={
+            hasData
+              ? analytics.subscriberGrowth >= 0
+                ? `Up ${analytics.subscriberGrowth.toFixed(2)}%`
+                : `Down ${Math.abs(Number(analytics.subscriberGrowth.toFixed(2)))}%`
+              : 'No data'
+          }
+          trend={hasData ? (analytics.subscriberGrowth >= 0 ? 'up' : 'down') : 'neutral'}
+        />
+        <StatsCard
+          title="Likes Growth"
+          value={
+            hasData
+              ? analytics.likesGrowth >= 0
+                ? `Up ${analytics.likesGrowth.toFixed(2)}%`
+                : `Down ${Math.abs(Number(analytics.likesGrowth.toFixed(2)))}%`
+              : 'No data'
+          }
+          trend={hasData ? (analytics.likesGrowth >= 0 ? 'up' : 'down') : 'neutral'}
+        />
+        <StatsCard
+          title="Engagement Rate"
+          value={hasData ? `${analytics.engagementRate.toFixed(2)}%` : 'No data'}
+          trend={hasData ? (analytics.engagementRate >= 0 ? 'up' : 'down') : 'neutral'}
+        />
+      </div>
+
+      {/* Top Videos Chart */}
+      {hasData ? (
+        <TopVideosChart
+          videos={analytics.analyticsData.slice(0, 5).map((video) => ({
+            title: video.title,
+            views: parseInt(video.views || '0'),
+          }))}
+        />
       ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatsCard
-              title="Views Growth"
-              value={
-                analytics.viewsGrowth >= 0
-                  ? `Up ${analytics.viewsGrowth.toFixed(2)}%`
-                  : `Down ${Math.abs(Number(analytics.viewsGrowth.toFixed(2)))}%`
-              }
-              trend={analytics.viewsGrowth >= 0 ? 'up' : 'down'}
-            />
-            <StatsCard
-              title="Subscriber Growth"
-              value={
-                analytics.subscriberGrowth >= 0
-                  ? `Up ${analytics.subscriberGrowth.toFixed(2)}%`
-                  : `Down ${Math.abs(Number(analytics.subscriberGrowth.toFixed(2)))}%`
-              }
-              trend={analytics.subscriberGrowth >= 0 ? 'up' : 'down'}
-            />
-            <StatsCard
-              title="Likes Growth"
-              value={
-                analytics.likesGrowth >= 0
-                  ? `Up ${analytics.likesGrowth.toFixed(2)}%`
-                  : `Down ${Math.abs(Number(analytics.likesGrowth.toFixed(2)))}%`
-              }
-              trend={analytics.likesGrowth >= 0 ? 'up' : 'down'}
-            />
-            <StatsCard
-              title="Engagement Rate"
-              value={`${analytics.engagementRate.toFixed(2)}%`}
-              trend={analytics.engagementRate >= 0 ? 'up' : 'down'}
-            />
-          </div>
+        <div className="text-center text-gray-500">
+          <p>No top videos to display.</p>
+        </div>
+      )}
 
-          <TopVideosChart
-            videos={analytics.analyticsData.slice(0, 5).map((video) => ({
-              title: video.title,
-              views: parseInt(video.views || '0'),
-            }))}
-          />
+      {/* Recommendations */}
+      <Recommendations analytics={analytics || {}} />
 
-          <Recommendations analytics={analytics} />
-
-          {analytics.analyticsData.length > 0 && (
-            <PerformanceChart data={analytics.analyticsData} />
-          )}
-        </>
+      {/* Performance Chart */}
+      {hasData ? (
+        <PerformanceChart data={analytics.analyticsData} />
+      ) : (
+        <div className="text-center text-gray-500">
+          <p>No performance data to display.</p>
+        </div>
       )}
     </div>
   );
