@@ -68,23 +68,27 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
       return;
     }
 
+    if (!formData.title || !formData.description) {
+      toast.error('Title and description are required for optimization');
+      return;
+    }
+
     setIsOptimizing(true);
     try {
       const optimizedData = await getOptimizedMetadata({
         ...video,
-        ...formData
+        ...formData,
       });
-      
+
       setFormData(optimizedData);
-      
-      // Get new SEO analysis for the optimized content
+
       const newAnalysis = await analyzeSEO(
         optimizedData.title,
         optimizedData.description,
         optimizedData.tags
       );
       setSeoAnalysis(newAnalysis);
-      
+
       toast.success('Content optimized successfully! Review and save the changes.');
     } catch (error: any) {
       console.error('Failed to optimize video:', error);

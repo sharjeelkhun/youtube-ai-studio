@@ -23,7 +23,8 @@ export async function analyzeSEO(title: string, description: string, tags: strin
   }
 
   try {
-    const response = await fetch('https://api.cohere.ai/analyze-seo', {
+    console.log('Using endpoint for analyzeSEO:', 'https://api.cohere.ai/v1/analyze-seo');
+    const response = await fetch('https://api.cohere.ai/v1/analyze-seo', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,6 +40,9 @@ export async function analyzeSEO(title: string, description: string, tags: strin
       url: response.url,
     });
 
+    const responseBody = await response.text(); // Read the response as text
+    console.log('API Response Body:', responseBody); // Debug log
+
     if (!response.ok) {
       if (response.status === 401) {
         throw new Error('Unauthorized: Invalid API key.');
@@ -51,10 +55,19 @@ export async function analyzeSEO(title: string, description: string, tags: strin
       }
     }
 
-    const data = await response.json();
-    console.log('API Response Data:', data); // Debug log
-    seoCache.set(cacheKey, data); // Cache the response
-    return data;
+    try {
+      const data = JSON.parse(responseBody);
+      seoCache.set(cacheKey, data); // Cache the response
+      return data;
+    } catch (error) {
+      console.error('Error parsing API response as JSON:', error);
+      return {
+        error: 'Failed to parse API response',
+        title: '',
+        description: '',
+        tags: [],
+      };
+    }
   } catch (error: any) {
     console.error('Error in analyzeSEO:', error.message || error);
     throw new Error(error.message || 'Failed to analyze SEO. Please try again later.');

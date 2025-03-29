@@ -9,6 +9,10 @@ interface APIKeyStore {
 export const useAPIKeyStore = create<APIKeyStore>((set, get) => ({
   keys: {},
   setKey: (keyName, keyValue) => {
+    if (!keyValue || typeof keyValue !== 'string') {
+      console.error(`Invalid API key for ${keyName}: ${keyValue}`);
+      return;
+    }
     console.log(`Setting API key: ${keyName} = ${keyValue}`); // Debug log
     set((state) => ({
       keys: {
@@ -20,6 +24,7 @@ export const useAPIKeyStore = create<APIKeyStore>((set, get) => ({
   getKey: (keyName) => {
     const key = get().keys[keyName];
     console.log(`Retrieving API key: ${keyName} = ${key}`); // Debug log
+    console.log(`Retrieving API key for analyzeSEO: ${get().keys['cohere']}`);
     return key;
   },
 }));

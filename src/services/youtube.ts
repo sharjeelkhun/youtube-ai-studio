@@ -1,7 +1,17 @@
-import { VideoData } from '../types/youtube';
 import { fetchWithAuth, YOUTUBE_API_BASE } from './api';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+
+export interface VideoData {
+  id: string;
+  title: string;
+  description: string;
+  uploadDate: string;
+  views: string;
+  likes: string;
+  tags: string[];
+  thumbnail: string;
+}
 
 export async function getChannelStats(accessToken: string) {
   if (!accessToken) {
@@ -13,8 +23,8 @@ export async function getChannelStats(accessToken: string) {
       `${YOUTUBE_API_BASE}/channels?part=statistics&mine=true`,
       {
         headers: {
-          'Accept': 'application/json',
-        }
+          Accept: 'application/json',
+        },
       },
       accessToken
     );
@@ -41,12 +51,12 @@ export async function getChannelVideos(accessToken: string): Promise<VideoData[]
       `${YOUTUBE_API_BASE}/channels?part=contentDetails&mine=true`,
       {
         headers: {
-          'Accept': 'application/json',
-        }
+          Accept: 'application/json',
+        },
       },
       accessToken
     );
-    
+
     if (!channelResponse.items?.[0]) {
       throw new Error('No channel found');
     }
@@ -58,11 +68,13 @@ export async function getChannelVideos(accessToken: string): Promise<VideoData[]
     // Fetch all videos using pagination
     do {
       const videosResponse = await fetchWithAuth(
-        `${YOUTUBE_API_BASE}/playlistItems?part=snippet,contentDetails&maxResults=50&playlistId=${uploadsPlaylistId}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`,
+        `${YOUTUBE_API_BASE}/playlistItems?part=snippet,contentDetails&maxResults=50&playlistId=${uploadsPlaylistId}${
+          nextPageToken ? `&pageToken=${nextPageToken}` : ''
+        }`,
         {
           headers: {
-            'Accept': 'application/json',
-          }
+            Accept: 'application/json',
+          },
         },
         accessToken
       );
@@ -77,14 +89,14 @@ export async function getChannelVideos(accessToken: string): Promise<VideoData[]
     const processedVideos: VideoData[] = [];
     for (let i = 0; i < allVideos.length; i += 50) {
       const batch = allVideos.slice(i, i + 50);
-      const videoIds = batch.map(item => item.contentDetails.videoId).join(',');
+      const videoIds = batch.map((item) => item.contentDetails.videoId).join(',');
 
       const detailsResponse = await fetchWithAuth(
         `${YOUTUBE_API_BASE}/videos?part=statistics,snippet&id=${videoIds}`,
         {
           headers: {
-            'Accept': 'application/json',
-          }
+            Accept: 'application/json',
+          },
         },
         accessToken
       );
@@ -99,7 +111,7 @@ export async function getChannelVideos(accessToken: string): Promise<VideoData[]
           views: details?.statistics?.viewCount || '0',
           likes: details?.statistics?.likeCount || '0',
           uploadDate: item.snippet.publishedAt,
-          tags: details?.snippet?.tags || []
+          tags: details?.snippet?.tags || [],
         };
       });
 
@@ -129,8 +141,8 @@ export async function updateVideoThumbnail(videoId: string, thumbnailFile: File,
         method: 'POST',
         body: formData,
         headers: {
-          'Accept': 'application/json',
-        }
+          Accept: 'application/json',
+        },
       },
       accessToken
     );
@@ -143,20 +155,29 @@ export async function updateVideoThumbnail(videoId: string, thumbnailFile: File,
 }
 
 export async function getAISuggestions(videoId: string, accessToken: string) {
-  const response = await fetch(`https://api.example.com/ai-suggestions/${videoId}`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  try {
+    const response = await fetch(`https://api.example.com/ai-suggestions/${videoId}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error('Failed to fetch AI suggestions');
+    if (!response.ok) {
+      throw new Error('Failed to fetch AI suggestions');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching AI suggestions:', error);
+    throw error;
   }
-
-  return response.json();
 }
 
 export async function getChannelSubscribers(accessToken: string): Promise<number> {
+  if (!accessToken) {
+    throw new Error('Access token is required');
+  }
+
   try {
     const response = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
       params: {

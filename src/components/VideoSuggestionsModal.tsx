@@ -15,7 +15,7 @@ export function VideoSuggestionsModal({ video, isOpen, onClose }: VideoSuggestio
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isOpen && aiService.hasActiveProvider()) {
+    if (isOpen && aiService.hasActiveProvider() && video.title && video.description) {
       setLoading(true);
       getVideoSuggestions({
         title: video.title,

@@ -65,9 +65,13 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
           alt={video.title}
           className="w-full aspect-video object-cover"
         />
-        {!isLoading && seoScore !== null && typeof seoScore === 'number' && (
+        {!isLoading && seoScore !== null && typeof seoScore === 'number' ? (
           <div className="absolute top-2 right-2">
             <SEOScoreIndicator score={seoScore} size="sm" />
+          </div>
+        ) : (
+          <div className="absolute top-2 right-2 bg-gray-100 rounded-lg px-3 py-1 text-sm text-gray-600">
+            No SEO Score
           </div>
         )}
         {!isLoading && !cohereKey && (

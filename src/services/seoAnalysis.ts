@@ -16,6 +16,11 @@ export function parseSEOAnalysis(rawData: string | object) {
     return JSON.parse(jsonString);
   } catch (error) {
     console.error('Error parsing SEO analysis JSON:', error);
-    return null; // Return null or a default value on error
+    return {
+      title: '',
+      description: '',
+      tags: [],
+      error: 'Failed to parse SEO analysis data',
+    };
   }
 }

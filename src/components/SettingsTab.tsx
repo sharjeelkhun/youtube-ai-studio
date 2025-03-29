@@ -13,15 +13,15 @@ const aiProviders = [
     description: 'Required for SEO analysis and content optimization',
     setupUrl: 'https://dashboard.cohere.ai/api-keys',
     freeTier: 'Free tier: 5M tokens per month',
-    icon: '⚡'
-  }
+    icon: '⚡',
+  },
 ];
 
 export function SettingsTab() {
   const { setKey, getKey } = useAPIKeyStore();
   const [selectedProvider, setSelectedProvider] = useState<string>(aiService.getCurrentProvider() || 'cohere');
-  const [apiKeys, setApiKeys] = useState({
-    cohere: getKey('cohere') || ''
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({
+    cohere: getKey('cohere') || '',
   });
 
   useEffect(() => {
@@ -30,13 +30,13 @@ export function SettingsTab() {
       toast('Please configure your Cohere API key to enable AI features', {
         icon: '⚠️',
         duration: 5000,
-        id: 'api-key-required'
+        id: 'api-key-required',
       });
     }
   }, [getKey]);
 
   const handleKeyChange = (provider: string, value: string) => {
-    setApiKeys(prev => ({ ...prev, [provider]: value }));
+    setApiKeys((prev) => ({ ...prev, [provider]: value }));
   };
 
   const handleKeySave = (provider: string) => {
@@ -50,6 +50,8 @@ export function SettingsTab() {
     if (aiService.setProvider(provider as 'cohere')) {
       setSelectedProvider(provider);
       toast.success(`${provider} API key saved successfully`);
+    } else {
+      toast.error(`Failed to set ${provider} as the active AI provider`);
     }
   };
 
