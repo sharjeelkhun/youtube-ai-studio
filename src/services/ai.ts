@@ -35,14 +35,13 @@ export async function analyzeSEO(title: string, description: string, tags: strin
     });
 
     const responseBody = await response.text();
-    console.log('API Response Body:', responseBody);
+    console.log('API Response Body:', responseBody); // Debug log
 
     if (!response.ok) {
       handleAPIError(response);
     }
 
     const data = tryParseJson(responseBody, {}) as SEOAnalysis;
-
     if (!data || !data.score || !data.titleAnalysis || !data.descriptionAnalysis || !data.tagsAnalysis || !data.overallSuggestions) {
       throw new Error('Invalid SEOAnalysis data received from API.');
     }
@@ -72,42 +71,76 @@ export async function getOptimizedMetadata(videoData: {
     throw new Error('Please configure your Cohere API key in Settings');
   }
 
-  const prompt = `Optimize this YouTube video's metadata for maximum visibility and engagement. Analyze the current performance and suggest specific improvements.
+  const prompt = `Given a YouTube video, optimize its metadata for maximum visibility and engagement.
+Format the response as a JSON object with the following structure:
+{
+  "title": "optimized title",
+  "description": "optimized description",
+  "tags": ["tag1", "tag2", "tag3"]
+}
 
-Current Video Metadata:
+Current Video:
 Title: "${videoData.title}"
 Description: "${videoData.description}"
 Current Tags: ${videoData.tags.join(', ')}
 Performance: ${videoData.views} views, ${videoData.likes} likes
 
 Requirements:
-1. Title should be engaging, include keywords, and be 40-60 characters
-2. Description should be detailed, include timestamps, and be minimum 1000 characters
-3. Tags should be relevant and comprehensive (minimum 10 tags)
+- Title: 40-60 characters, engaging, include keywords
+- Description: Minimum 1000 characters, include timestamps
+- Tags: Minimum 10 relevant tags
 
-Return ONLY a JSON object with this structure:
-{
-  "title": "optimized title",
-  "description": "optimized description",
-  "tags": ["tag1", "tag2", "tag3", ...]
-}`;
+Response must be ONLY the JSON object, no other text.`;
 
   try {
-    const response = await aiService.generateContent(prompt);
-    const optimizedData: { title: string; description: string; tags: string[] } = tryParseJson(response, {
+    console.log('Sending optimization request to Cohere...');
+    
+    const response = await fetch('https://api.cohere.ai/v1/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${cohereKey}`,
+      },
+      body: JSON.stringify({
+        model: 'command',
+        prompt,
+        max_tokens: 1000,
+        temperature: 0.7,
+        response_format: 'json',
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Cohere API Error:', error);
+      throw new Error(response.status === 429 
+        ? 'Rate limit exceeded. Please wait a moment and try again.'
+        : `API Error: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const rawResponse = await response.text();
+    console.log('Raw AI Response:', rawResponse);
+
+    const optimizedData = tryParseJson<{ title: string; description: string; tags: string[] }>(rawResponse, {
       title: '',
       description: '',
       tags: [],
     });
 
     if (!optimizedData.title || !optimizedData.description || !Array.isArray(optimizedData.tags)) {
-      throw new Error('Invalid optimized metadata received from AI.');
+      console.error('Invalid AI response structure:', optimizedData);
+      throw new Error('Invalid optimization data received from AI');
     }
 
+    // Validate and sanitize the response
     return {
-      title: optimizedData.title.trim(),
+      title: optimizedData.title.trim().slice(0, 100), // Limit title length
       description: optimizedData.description.trim(),
-      tags: [...new Set(optimizedData.tags.map((tag) => tag.trim()))],
+      tags: [...new Set(optimizedData.tags
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0)
+        .slice(0, 500))] // Limit number of tags
     };
   } catch (error: any) {
     console.error('Error optimizing metadata:', error);
@@ -132,7 +165,6 @@ export async function getVideoSuggestions(videoData: {
   }
 
   const prompt = `Analyze this YouTube video and provide detailed recommendations for improvement.
-
 Video Details:
 Title: "${videoData.title}"
 Description: "${videoData.description}"

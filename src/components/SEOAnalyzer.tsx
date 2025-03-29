@@ -31,9 +31,9 @@ export function SEOAnalyzer() {
       } else if (error.message.includes('API endpoint not found')) {
         toast.error('The API endpoint is incorrect. Please check your configuration.');
       } else {
-        toast.error('Failed to analyze SEO. Please try again later.');
+        toast.error('Failed to optimize metadata. Please try again later.');
       }
-      console.error('Error analyzing SEO:', error);
+      console.error('Error optimizing metadata:', error);
     } finally {
       setIsLoading(false);
     }
