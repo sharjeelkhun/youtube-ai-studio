@@ -9,6 +9,7 @@ const seoCache = new Map<string, SEOAnalysis>();
 export async function analyzeSEO(title: string, description: string, tags: string[]) {
   const { getKey } = useAPIKeyStore.getState();
   const cohereKey = getKey('cohere');
+  console.log('Retrieved Cohere API Key:', cohereKey); // Debug log
 
   if (!cohereKey) {
     throw new Error('Cohere API key is missing. Please configure it in settings.');
@@ -24,16 +25,24 @@ export async function analyzeSEO(title: string, description: string, tags: strin
       body: JSON.stringify({ title, description, tags }),
     });
 
+    console.log('API Response Status:', response.status); // Debug log
+
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      if (response.status === 401) {
+        throw new Error('Unauthorized: Invalid API key.');
+      } else if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again later.');
+      } else {
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      }
     }
 
     const data = await response.json();
-    console.log('API Response:', data); // Debug log
+    console.log('API Response Data:', data); // Debug log
     return data;
-  } catch (error) {
-    console.error('Error in analyzeSEO:', error);
-    throw error;
+  } catch (error: any) {
+    console.error('Error in analyzeSEO:', error.message || error);
+    throw new Error(error.message || 'Failed to analyze SEO. Please try again later.');
   }
 }
 
@@ -98,7 +107,7 @@ Return ONLY a JSON object with this structure:
         : [], // Fallback to an empty array
     };
 
-    console.log('Optimized Tags:', optimizedData.tags); // Debug log
+    console.log('Optimized Tags:', sanitizedData.tags); // Debug log
     console.log('Fallback Tags:', videoData.tags); // Debug log
 
     // Ensure we have meaningful changes
