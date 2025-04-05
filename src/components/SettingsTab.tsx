@@ -56,6 +56,7 @@ export function SettingsTab() {
     huggingface: null,
     openrouter: null,
   });
+  const [tokenLimit, setTokenLimit] = useState<number | null>(null);
 
   useEffect(() => {
     // Initialize with stored provider
@@ -87,6 +88,17 @@ export function SettingsTab() {
 
     fetchTokenLimits();
   }, []);
+
+  useEffect(() => {
+    async function fetchTokenLimit() {
+      if (selectedProvider) {
+        const limit = await aiService.getTokenUsage(selectedProvider as 'cohere' | 'openai' | 'huggingface' | 'openrouter');
+        setTokenLimit(limit);
+      }
+    }
+
+    fetchTokenLimit();
+  }, [selectedProvider]);
 
   const handleKeyChange = (provider: string, value: string) => {
     setApiKeys((prev) => ({ ...prev, [provider]: value }));
@@ -146,6 +158,14 @@ export function SettingsTab() {
             Multiple providers help avoid rate limits.
           </p>
         </div>
+
+        {selectedProvider && tokenLimit !== null && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+            <p className="text-blue-800">
+              <strong>Token Limit Remaining:</strong> {tokenLimit} tokens for {selectedProvider}.
+            </p>
+          </div>
+        )}
 
         <div className="space-y-8">
           {aiProviders.map((provider) => (

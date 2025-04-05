@@ -30,45 +30,19 @@ class AIService {
   }
 
   async generateContent(prompt: string): Promise<string> {
-    const providers: Array<'cohere' | 'openai' | 'huggingface' | 'openrouter'> = [this.currentProvider, 'cohere', 'openai', 'huggingface', 'openrouter'];
-    let attempts = 0;
-    let lastError: Error | null = null;
+    const { getKey } = useAPIKeyStore.getState();
+    const apiKey = getKey(this.currentProvider);
 
-    while (attempts < this.maxRetries * providers.length) {
-      const provider = providers[attempts % providers.length] as 'cohere' | 'openai' | 'huggingface' | 'openrouter'; // Ensure proper typing
-      try {
-        console.log(`Attempting with provider: ${provider} (attempt ${attempts + 1})`);
-        const response = await this.tryProvider(provider, prompt);
-
-        if (!response) {
-          throw new Error(`Empty response from ${provider}`);
-        }
-
-        const parsedResponse = this.tryParseJson<{ text: string }>(response, { text: '' });
-        if (parsedResponse.text) {
-          this.currentProvider = provider; // Update current provider if successful
-          return parsedResponse.text;
-        } else {
-          throw new Error(`Invalid response structure from ${provider}`);
-        }
-      } catch (error: any) {
-        console.error(`Error with ${provider}:`, error);
-        lastError = error;
-
-        if (error.message.includes('429') || error.message.includes('Rate limit')) {
-          console.log(`Rate limit hit for ${provider}. Retrying after delay...`);
-          await this.delay(1000 * Math.pow(2, attempts)); // Exponential backoff
-        } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
-          console.log(`Invalid API key for ${provider}. Skipping to next provider...`);
-        } else {
-          console.log(`Unhandled error with ${provider}. Retrying with next provider...`);
-        }
-
-        attempts++;
-      }
+    if (!apiKey) {
+      throw new Error(`No API key configured for the selected provider: ${this.currentProvider}`);
     }
 
-    throw lastError || new Error('All AI providers failed or are rate limited. Please try again later.');
+    try {
+      return await this.tryProvider(this.currentProvider, prompt);
+    } catch (error) {
+      console.error(`Error with ${this.currentProvider}:`, error);
+      throw new Error(`Failed to generate content using ${this.currentProvider}`);
+    }
   }
 
   private sanitizeJsonString(rawString: string): string {
