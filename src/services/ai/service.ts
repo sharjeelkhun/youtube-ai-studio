@@ -98,12 +98,34 @@ class AIService {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
+          'Cohere-Version': '2022-12-06'
         },
         body: JSON.stringify({
           model: 'command',
           prompt,
           max_tokens: 1000,
           temperature: 0.7,
+          format: 'json', // Request JSON format
+          json_schema: { // Define expected schema
+            type: 'object',
+            properties: {
+              score: { type: 'number' },
+              titleAnalysis: {
+                type: 'object',
+                properties: {
+                  score: { type: 'number' },
+                  suggestions: { type: 'array', items: { type: 'string' } }
+                }
+              },
+              descriptionAnalysis: {
+                type: 'object',
+                properties: {
+                  score: { type: 'number' },
+                  suggestions: { type: 'array', items: { type: 'string' } }
+                }
+              }
+            }
+          }
         }),
       });
 
@@ -112,7 +134,7 @@ class AIService {
       }
 
       const data = await response.json();
-      return data.generations[0].text;
+      return data.generations?.[0]?.text || '';
     } catch (error) {
       console.error('Error with Cohere API:', error);
       throw error;
@@ -228,6 +250,12 @@ class AIService {
   }
 
   async getTokenUsage(provider: 'cohere' | 'openai' | 'huggingface' | 'openrouter'): Promise<number | null> {
+    // Skip token usage check for unsupported providers
+    if (['huggingface', 'openrouter'].includes(provider)) {
+      console.warn(`${provider} does not support token usage API`);
+      return null;
+    }
+
     const { getKey } = useAPIKeyStore.getState();
     const apiKey = getKey(provider);
 
@@ -239,30 +267,19 @@ class AIService {
     try {
       switch (provider) {
         case 'cohere':
-          const cohereResponse = await fetch(`${AI_PROVIDERS.COHERE.baseUrl}/usage`, {
-            headers: { Authorization: `Bearer ${apiKey}` },
-          });
-          if (cohereResponse.status === 404) {
-            console.warn('Cohere does not support token usage API.');
-            return null;
-          }
-          if (!cohereResponse.ok) {
-            throw new Error(`Failed to fetch Cohere usage: ${cohereResponse.statusText}`);
-          }
-          const cohereData = await cohereResponse.json();
-          return cohereData.total_tokens_remaining || null;
+          // Cohere does not have a token usage endpoint
+          return null;
 
         case 'openai':
-          console.warn('OpenAI token usage API is not implemented.');
-          return null;
-
-        case 'huggingface':
-        case 'openrouter':
-          console.warn(`${provider} does not support token usage API.`);
-          return null;
+          const response = await fetch('https://api.openai.com/v1/usage', {
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+          });
+          if (!response.ok) return null;
+          const data = await response.json();
+          return data.total_available || null;
 
         default:
-          throw new Error(`Unsupported provider: ${provider}`);
+          return null;
       }
     } catch (error) {
       console.error(`Error fetching token usage for ${provider}:`, error);

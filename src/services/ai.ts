@@ -30,11 +30,25 @@ export async function analyzeSEO(title: string, description: string, tags: strin
       seoCache.set(cacheKey, data);
       return data;
     } catch (error: any) {
-      if (error.message.includes('Rate limit')) {
-        await handleRateLimit(retryCount);
+      const isRateLimit = 
+        error.message?.includes('Rate limit') || 
+        error.status === 429 ||
+        error.response?.status === 429;
+
+      if (isRateLimit) {
+        console.warn(`Rate limit hit, attempt ${retryCount + 1}/${maxRetries}`);
+        const backoffTime = Math.min(1000 * Math.pow(2, retryCount), 30000);
+        await new Promise(resolve => setTimeout(resolve, backoffTime));
         retryCount++;
         continue;
       }
+
+      if (retryCount < maxRetries - 1) {
+        console.warn(`Retrying after error: ${error.message}`);
+        retryCount++;
+        continue;
+      }
+
       console.error('Error analyzing SEO:', error);
       throw error;
     }
