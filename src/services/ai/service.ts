@@ -1,5 +1,6 @@
 import { useAPIKeyStore } from '../../store/apiKeyStore';
 import { AI_PROVIDERS } from '../../config/aiProviders';
+import { validateSEOAnalysis } from '../../utils/json';
 
 class AIService {
   private currentProvider: 'cohere' | 'openai' | 'huggingface' | 'openrouter' = 'cohere';
@@ -68,6 +69,35 @@ class AIService {
     }
   }
 
+  private formatSEOResponse(text: string): any {
+    try {
+      const response = JSON.parse(text);
+      // Ensure response matches expected format
+      if (!validateSEOAnalysis(response)) {
+        // Convert unstructured response to proper format
+        return {
+          score: 0,
+          titleAnalysis: {
+            score: 0,
+            suggestions: [text]
+          },
+          descriptionAnalysis: {
+            score: 0,
+            suggestions: []
+          },
+          tagsAnalysis: {
+            score: 0,
+            suggestions: []
+          }
+        };
+      }
+      return response;
+    } catch (error) {
+      console.error('Error formatting SEO response:', error);
+      throw new Error('Invalid SEO analysis format');
+    }
+  }
+
   private async tryProvider(provider: string, prompt: string): Promise<string> {
     const { getKey } = useAPIKeyStore.getState();
     const apiKey = getKey(provider);
@@ -105,9 +135,10 @@ class AIService {
           prompt,
           max_tokens: 1000,
           temperature: 0.7,
-          format: 'json', // Request JSON format
-          json_schema: { // Define expected schema
+          format: 'json',
+          json_schema: {
             type: 'object',
+            required: ['score', 'titleAnalysis', 'descriptionAnalysis'],
             properties: {
               score: { type: 'number' },
               titleAnalysis: {
@@ -126,7 +157,7 @@ class AIService {
               }
             }
           }
-        }),
+        })
       });
 
       if (!response.ok) {
@@ -134,7 +165,8 @@ class AIService {
       }
 
       const data = await response.json();
-      return data.generations?.[0]?.text || '';
+      const text = data.generations?.[0]?.text;
+      return this.formatSEOResponse(text);
     } catch (error) {
       console.error('Error with Cohere API:', error);
       throw error;
