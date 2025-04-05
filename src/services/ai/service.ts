@@ -24,7 +24,7 @@ class AIService {
       return false;
     }
 
-    this.currentProvider = provider;
+    this.currentProvider = provider; // Ensure the selected provider is updated
     console.log(`Switched to provider: ${provider}`);
     return true;
   }

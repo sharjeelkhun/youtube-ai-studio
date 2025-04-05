@@ -134,7 +134,7 @@ export function SettingsTab() {
 
     try {
       if (aiService.setProvider(providerId as 'cohere' | 'openai' | 'huggingface' | 'openrouter')) {
-        setSelectedProvider(providerId);
+        setSelectedProvider(providerId); // Update the selected provider in the state
         toast.success(`${providerId} set as active AI provider`);
       } else {
         toast.error(`Failed to set ${providerId} as active provider`);
