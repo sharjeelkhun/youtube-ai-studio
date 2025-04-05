@@ -172,6 +172,14 @@ export function SettingsTab() {
           </div>
         )}
 
+        {selectedProvider && tokenLimit === null && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+            <p className="text-red-800">
+              Unable to fetch token usage for {selectedProvider}. Please check your API key or provider configuration.
+            </p>
+          </div>
+        )}
+
         <div className="space-y-8">
           {aiProviders.map((provider) => (
             <div key={provider.id} className="border-b pb-8 last:border-0">

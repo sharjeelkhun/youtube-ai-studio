@@ -242,7 +242,9 @@ class AIService {
           const cohereResponse = await fetch(`${AI_PROVIDERS.COHERE.baseUrl}/usage`, {
             headers: { Authorization: `Bearer ${apiKey}` },
           });
-          if (!cohereResponse.ok) throw new Error('Failed to fetch Cohere usage');
+          if (!cohereResponse.ok) {
+            throw new Error(`Failed to fetch Cohere usage: ${cohereResponse.statusText}`);
+          }
           const cohereData = await cohereResponse.json();
           return cohereData.total_tokens_remaining || null;
 
@@ -250,16 +252,18 @@ class AIService {
           const openaiResponse = await fetch(`${AI_PROVIDERS.OPENAI.baseUrl}/usage`, {
             headers: { Authorization: `Bearer ${apiKey}` },
           });
-          if (!openaiResponse.ok) throw new Error('Failed to fetch OpenAI usage');
+          if (!openaiResponse.ok) {
+            throw new Error(`Failed to fetch OpenAI usage: ${openaiResponse.statusText}`);
+          }
           const openaiData = await openaiResponse.json();
           return openaiData.total_tokens_remaining || null;
 
         case 'huggingface':
-          // HuggingFace does not provide token usage API, return null
+          console.warn('HuggingFace does not provide a token usage API.');
           return null;
 
         case 'openrouter':
-          // OpenRouter does not provide token usage API, return null
+          console.warn('OpenRouter does not provide a token usage API.');
           return null;
 
         default:
