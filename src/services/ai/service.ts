@@ -61,7 +61,7 @@ class AIService {
 
         if (error.message.includes('429') || error.message.includes('Rate limit')) {
           console.log(`Rate limit hit for ${provider}. Retrying after delay...`);
-          await this.delay(1000); // Delay before retrying
+          await this.delay(1000 * Math.pow(2, attempts)); // Exponential backoff
         } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
           console.log(`Invalid API key for ${provider}. Skipping to next provider...`);
         } else {
@@ -93,6 +93,7 @@ class AIService {
       return JSON.parse(jsonString);
     } catch (error) {
       console.error('JSON Parse Error:', error);
+      console.error('Raw Response:', jsonString); // Log raw response for debugging
       return fallback;
     }
   }
