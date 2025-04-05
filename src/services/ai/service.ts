@@ -73,22 +73,34 @@ class AIService {
 
   private sanitizeJsonString(rawString: string): string {
     try {
-      // Clean up common formatting issues
-      const cleaned = rawString
-        .replace(/[\n\r\t]/g, ' ')
-        .replace(/,\s*([\]}])/g, '$1')
-        .replace(/:\s*,/g, ': null,')
-        .replace(/\[\s*,/g, '[')
-        .replace(/,\s*\]/g, ']');
-
-      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No valid JSON object found');
+      // Extract JSON from text response
+      const jsonRegex = /\{(?:[^{}]|{[^{}]*})*\}/g;
+      const matches = rawString.match(jsonRegex);
+      
+      if (!matches) {
+        throw new Error('No JSON object found in response');
       }
 
-      // Validate JSON structure
-      const parsed = JSON.parse(jsonMatch[0]);
-      return JSON.stringify(parsed);
+      // Try each matched JSON object
+      for (const match of matches) {
+        try {
+          const cleaned = match
+            .replace(/[\n\r\t]/g, ' ')
+            .replace(/,\s*([\]}])/g, '$1')
+            .replace(/:\s*,/g, ': null,')
+            .replace(/\[\s*,/g, '[')
+            .replace(/,\s*\]/g, ']');
+          
+          // Validate JSON structure
+          const parsed = JSON.parse(cleaned);
+          if (this.validateSEOFormat(parsed)) {
+            return JSON.stringify(parsed);
+          }
+        } catch (e) {
+          continue; // Try next match if this one fails
+        }
+      }
+      throw new Error('No valid SEO JSON found in response');
     } catch (error) {
       console.error('Error sanitizing JSON:', error, 'Raw:', rawString);
       throw new Error('Failed to sanitize JSON string');
@@ -107,36 +119,69 @@ class AIService {
 
   private formatSEOResponse(text: string): SEOAnalysis {
     try {
-      // First try parsing as direct JSON
-      const parsed = tryParseJson<SEOAnalysis>(text, DEFAULT_SEO_ANALYSIS);
-      if (parsed && this.validateSEOFormat(parsed)) {
-        return this.normalizeSEOScores(parsed);
+      // Try parsing direct JSON first
+      try {
+        const parsed = JSON.parse(text);
+        if (this.validateSEOFormat(parsed)) {
+          return this.normalizeSEOScores(parsed);
+        }
+      } catch (e) {
+        // Continue to next attempt if direct parse fails
       }
 
-      // If direct parse fails, try to extract JSON
-      const sanitized = sanitizeJsonString(text);
-      const extracted = tryParseJson<SEOAnalysis>(sanitized, DEFAULT_SEO_ANALYSIS);
-      if (extracted && this.validateSEOFormat(extracted)) {
+      // Try extracting JSON from text
+      const sanitized = this.sanitizeJsonString(text);
+      const extracted = JSON.parse(sanitized);
+      if (this.validateSEOFormat(extracted)) {
         return this.normalizeSEOScores(extracted);
       }
 
-      // If both attempts fail, create a fallback response
+      // If both attempts fail, create fallback response
+      console.warn('Using fallback SEO response');
       return this.createFallbackSEOResponse(text);
     } catch (error) {
       console.error('Error formatting SEO response:', error);
-      return DEFAULT_SEO_ANALYSIS;
+      console.debug('Raw text:', text);
+      return {
+        ...DEFAULT_SEO_ANALYSIS,
+        score: 50, // Default score instead of 0
+        titleAnalysis: {
+          score: 50,
+          suggestions: ['Could not analyze title']
+        },
+        descriptionAnalysis: {
+          score: 50,
+          suggestions: ['Could not analyze description']
+        },
+        tagsAnalysis: {
+          score: 50,
+          suggestions: ['Could not analyze tags']
+        },
+        overallSuggestions: ['Analysis failed, using default values']
+      };
     }
   }
 
   private validateSEOFormat(data: any): boolean {
     if (!data || typeof data !== 'object') return false;
 
+    // Check required structure
+    const hasRequiredFields = 
+      'score' in data &&
+      'titleAnalysis' in data &&
+      'descriptionAnalysis' in data &&
+      'tagsAnalysis' in data;
+
+    if (!hasRequiredFields) return false;
+
+    // Validate scores
     const hasValidScores = 
       (typeof data.score === 'number' || data.score === null) &&
-      data.titleAnalysis?.score !== undefined &&
-      data.descriptionAnalysis?.score !== undefined &&
-      data.tagsAnalysis?.score !== undefined;
+      (typeof data.titleAnalysis?.score === 'number' || data.titleAnalysis?.score === null) &&
+      (typeof data.descriptionAnalysis?.score === 'number' || data.descriptionAnalysis?.score === null) &&
+      (typeof data.tagsAnalysis?.score === 'number' || data.tagsAnalysis?.score === null);
 
+    // Validate suggestions arrays
     const hasValidSuggestions = 
       Array.isArray(data.titleAnalysis?.suggestions) &&
       Array.isArray(data.descriptionAnalysis?.suggestions) &&
@@ -146,18 +191,23 @@ class AIService {
   }
 
   private normalizeSEOScores(analysis: SEOAnalysis): SEOAnalysis {
+    const normalizeScore = (score: number | null): number => {
+      if (score === null || isNaN(score)) return 50;
+      return Math.min(Math.max(Math.round(score), 0), 100);
+    };
+
     return {
-      score: analysis.score || 0,
+      score: normalizeScore(analysis.score),
       titleAnalysis: {
-        score: analysis.titleAnalysis?.score || 0,
+        score: normalizeScore(analysis.titleAnalysis?.score),
         suggestions: analysis.titleAnalysis?.suggestions || []
       },
       descriptionAnalysis: {
-        score: analysis.descriptionAnalysis?.score || 0,
+        score: normalizeScore(analysis.descriptionAnalysis?.score),
         suggestions: analysis.descriptionAnalysis?.suggestions || []
       },
       tagsAnalysis: {
-        score: analysis.tagsAnalysis?.score || 0,
+        score: normalizeScore(analysis.tagsAnalysis?.score),
         suggestions: analysis.tagsAnalysis?.suggestions || []
       },
       overallSuggestions: analysis.overallSuggestions || []
