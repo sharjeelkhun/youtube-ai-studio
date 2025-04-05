@@ -44,21 +44,21 @@ class AIService {
         console.log(`Attempting with provider: ${provider} (attempt ${attempts + 1})`);
         const response = await this.tryProvider(provider, prompt);
 
-        // Validate and sanitize the response
-        const sanitizedResponse = this.sanitizeJsonString(response);
-        const parsedResponse = this.tryParseJson<{ text: string }>(sanitizedResponse, { text: '' });
+        if (!response) {
+          throw new Error(`Empty response from ${provider}`);
+        }
 
+        const parsedResponse = this.tryParseJson<{ text: string }>(response, { text: '' });
         if (parsedResponse.text) {
           this.currentProvider = provider; // Update current provider if successful
           return parsedResponse.text;
         } else {
-          throw new Error('Invalid response structure');
+          throw new Error(`Invalid response structure from ${provider}`);
         }
       } catch (error: any) {
         console.error(`Error with ${provider}:`, error);
         lastError = error;
 
-        // Handle rate limit or invalid API key errors
         if (error.message.includes('429') || error.message.includes('Rate limit')) {
           console.log(`Rate limit hit for ${provider}. Retrying with next provider...`);
         } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
@@ -91,8 +91,7 @@ class AIService {
     try {
       return JSON.parse(jsonString);
     } catch (error) {
-      console.error('JSON Parse Error. Original:', jsonString);
-      console.error('Parse Error:', error);
+      console.error('JSON Parse Error:', error);
       return fallback;
     }
   }
@@ -114,31 +113,36 @@ class AIService {
       case 'huggingface':
         return this.generateWithHuggingFace(prompt, apiKey);
       default:
-        return '';
+        throw new Error(`Unsupported provider: ${provider}`);
     }
   }
 
   private async generateWithCohere(prompt: string, apiKey: string): Promise<string> {
-    const response = await fetch(`${AI_PROVIDERS.COHERE.baseUrl}/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'command',
-        prompt,
-        max_tokens: 1000,
-        temperature: 0.7,
-      }),
-    });
+    try {
+      const response = await fetch(`${AI_PROVIDERS.COHERE.baseUrl}/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'command',
+          prompt,
+          max_tokens: 1000,
+          temperature: 0.7,
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`Cohere API error: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`Cohere API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.generations[0].text;
+    } catch (error) {
+      console.error('Error with Cohere API:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    return data.generations[0].text;
   }
 
   private async generateWithOpenAI(prompt: string, apiKey: string): Promise<string> {
@@ -182,9 +186,6 @@ class AIService {
       });
 
       if (!response.ok) {
-        if (response.status === 403) {
-          throw new Error('HuggingFace API error: 403 (Forbidden)');
-        }
         throw new Error(`HuggingFace API error: ${response.status}`);
       }
 
