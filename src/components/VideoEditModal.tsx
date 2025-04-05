@@ -28,6 +28,15 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
     tags: video.tags
   });
 
+  // Reset form data when video changes
+  useEffect(() => {
+    setFormData({
+      title: video.title,
+      description: video.description,
+      tags: video.tags
+    });
+  }, [video]);
+
   useEffect(() => {
     const analyzeSEOScore = async () => {
       try {
@@ -51,9 +60,11 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
     setIsLoading(true);
     try {
       await updateVideoDetails(video.id, accessToken, data);
+      // Update local form data
+      setFormData(data);
       onUpdate();
-      onClose();
       toast.success('Video details updated successfully');
+      onClose();
     } catch (error: any) {
       console.error('Failed to update video:', error);
       toast.error(error.message || 'Failed to update video details');
@@ -83,7 +94,12 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
         likes: video.likes,
       });
 
-      setFormData(optimizedData);
+      // Update form data with optimized content
+      setFormData({
+        title: optimizedData.title,
+        description: optimizedData.description,
+        tags: optimizedData.tags
+      });
 
       const newAnalysis = await analyzeSEO(
         optimizedData.title,
@@ -139,7 +155,7 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
             </div>
 
             <VideoDetailsForm
-              video={{ ...video, ...formData }}
+              video={{ ...video, ...formData }} // Pass merged data
               onSubmit={handleSubmit}
               onCancel={onClose}
               isLoading={isLoading}
