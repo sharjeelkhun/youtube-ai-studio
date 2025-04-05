@@ -73,26 +73,24 @@ class AIService {
 
   private sanitizeJsonString(rawString: string): string {
     try {
-      if (typeof rawString !== 'string') {
-        throw new Error('Input must be a string');
+      // Clean up common formatting issues
+      const cleaned = rawString
+        .replace(/[\n\r\t]/g, ' ')
+        .replace(/,\s*([\]}])/g, '$1')
+        .replace(/:\s*,/g, ': null,')
+        .replace(/\[\s*,/g, '[')
+        .replace(/,\s*\]/g, ']');
+
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No valid JSON object found');
       }
 
-      // Remove any leading/trailing non-JSON content
-      const jsonStart = rawString.indexOf('{');
-      const jsonEnd = rawString.lastIndexOf('}');
-      
-      if (jsonStart === -1 || jsonEnd === -1) {
-        throw new Error('No JSON object found in string');
-      }
-
-      const jsonStr = rawString.slice(jsonStart, jsonEnd + 1);
-      
       // Validate JSON structure
-      JSON.parse(jsonStr); // Will throw if invalid
-      return jsonStr;
+      const parsed = JSON.parse(jsonMatch[0]);
+      return JSON.stringify(parsed);
     } catch (error) {
-      console.error('Error sanitizing JSON:', error);
-      console.debug('Raw input:', rawString);
+      console.error('Error sanitizing JSON:', error, 'Raw:', rawString);
       throw new Error('Failed to sanitize JSON string');
     }
   }
@@ -232,6 +230,25 @@ class AIService {
     return this.rateLimiter.execute(async () => {
       try {
         console.log('Sending optimization request to Cohere...');
+
+        // Format the prompt to force JSON response
+        const formattedPrompt = `${prompt}\n\nRespond ONLY with a JSON object in this exact format:
+        {
+          "score": number,
+          "titleAnalysis": {
+            "score": number,
+            "suggestions": string[]
+          },
+          "descriptionAnalysis": {
+            "score": number,
+            "suggestions": string[]
+          },
+          "tagsAnalysis": {
+            "score": number,
+            "suggestions": string[]
+          }
+        }`;
+
         const response = await fetch(`${AI_PROVIDERS.COHERE.baseUrl}/generate`, {
           method: 'POST',
           headers: {
@@ -241,33 +258,12 @@ class AIService {
           },
           body: JSON.stringify({
             model: 'command',
-            prompt,
-            max_tokens: 1000,
-            temperature: 0.7,
+            prompt: formattedPrompt,
+            max_tokens: 2000,
+            temperature: 0.3, // Lower temperature for more structured output
             format: 'json',
-            json_schema: {
-              type: 'object',
-              required: ['score', 'titleAnalysis', 'descriptionAnalysis'],
-              properties: {
-                score: { type: ['number', 'null'] },
-                titleAnalysis: {
-                  type: 'object',
-                  required: ['score', 'suggestions'],
-                  properties: {
-                    score: { type: ['number', 'null'] },
-                    suggestions: { type: 'array', items: { type: 'string' } }
-                  }
-                },
-                descriptionAnalysis: {
-                  type: 'object',
-                  required: ['score', 'suggestions'],
-                  properties: {
-                    score: { type: ['number', 'null'] },
-                    suggestions: { type: 'array', items: { type: 'string' } }
-                  }
-                }
-              }
-            }
+            truncate: 'END',
+            return_likelihoods: 'NONE'
           })
         });
 
@@ -280,20 +276,23 @@ class AIService {
         }
 
         const data = await response.json();
-        console.log('Raw AI Response:', data);
-        const text = data.generations?.[0]?.text;
-        console.log('Generated Text:', text);
-        
-        if (!text) {
+        if (!data.generations?.[0]?.text) {
           throw new Error('Empty response from Cohere');
         }
 
-        return text;
+        // Try to extract JSON from the response
+        const text = data.generations[0].text.trim();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('No valid JSON found in response');
+        }
+
+        return jsonMatch[0];
       } catch (error: any) {
         if (error.message.includes('Rate limit')) {
+          console.warn('Rate limit hit, retrying with backoff...');
           await this.handleRateLimit('cohere', prompt);
         }
-        console.error('Error with Cohere API:', error);
         throw error;
       }
     });
@@ -387,10 +386,19 @@ class AIService {
 
     if (this.retryCount >= this.maxRetries) {
       this.retryCount = 0;
-      throw new Error('Max retries exceeded');
+      throw new Error('Rate limit exceeded after max retries');
     }
 
-    return this.generateContent(prompt);
+    // Try next provider
+    const providers = ['cohere', 'openai', 'huggingface', 'openrouter'] as const;
+    const nextProvider = providers[(providers.indexOf(currentProvider as any) + 1) % providers.length];
+    
+    if (this.setProvider(nextProvider)) {
+      console.log(`Switching to ${nextProvider}`);
+      return this.generateContent(prompt);
+    }
+
+    throw new Error('No alternative providers available');
   }
 
   private delay(ms: number): Promise<void> {
