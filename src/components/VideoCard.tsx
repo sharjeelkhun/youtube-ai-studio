@@ -7,7 +7,7 @@ import { SEOScoreIndicator } from './video/SEOScoreIndicator';
 import { throttledAnalyzeSEO } from '../services/ai';
 import { parseSEOAnalysis } from '../services/seoAnalysis';
 import { useAPIKeyStore } from '../store/apiKeyStore';
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import toast from 'react-hot-toast';
 
 interface VideoCardProps {
@@ -19,9 +19,12 @@ interface VideoCardProps {
 export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const { getKey } = useAPIKeyStore();
   const cohereKey = getKey('cohere');
+  const queryClient = useQueryClient();
+
+  const queryKey = ['seo-score', video.id, video.title, video.description, video.tags.join(',')];
 
   const { data: seoScore, isLoading } = useQuery(
-    ['seo-score', video.id, cohereKey],
+    queryKey,
     async () => {
       if (!cohereKey) return null;
       try {
@@ -42,9 +45,17 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       staleTime: 5 * 60 * 1000, // 5 minutes
       cacheTime: 30 * 60 * 1000, // 30 minutes
       retry: 1,
-      refetchOnWindowFocus: false
+      refetchOnWindowFocus: false,
+      refetchOnMount: true
     }
   );
+
+  React.useEffect(() => {
+    // Prefetch the next queries
+    if (cohereKey) {
+      queryClient.prefetchQuery(queryKey);
+    }
+  }, [cohereKey, video.id]);
 
   return (
     <motion.div
@@ -61,6 +72,10 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
         {!isLoading && seoScore !== null && typeof seoScore === 'number' ? (
           <div className="absolute top-2 right-2">
             <SEOScoreIndicator score={seoScore} size="sm" />
+          </div>
+        ) : isLoading ? (
+          <div className="absolute top-2 right-2 bg-gray-100 rounded-lg px-3 py-1 text-sm text-gray-600">
+            Analyzing...
           </div>
         ) : (
           <div className="absolute top-2 right-2 bg-gray-100 rounded-lg px-3 py-1 text-sm text-gray-600">
