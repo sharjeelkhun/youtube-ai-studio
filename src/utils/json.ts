@@ -5,7 +5,9 @@ export function sanitizeJsonString(rawString: string): string {
     if (!jsonMatch) {
       throw new Error('No valid JSON object found');
     }
-    return jsonMatch[0]; // Return the matched JSON object
+    return jsonMatch[0]
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+      .trim();
   } catch (error) {
     console.error('Error sanitizing JSON string:', error);
     throw new Error('Failed to sanitize JSON string');

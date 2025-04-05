@@ -72,70 +72,83 @@ Requirements:
 
 Response must be ONLY the JSON object, no other text.`;
 
-  try {
-    console.log('Sending optimization request to Cohere...');
-    
-    const response = await fetch('https://api.cohere.ai/v1/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${cohereKey}`,
-      },
-      body: JSON.stringify({
-        model: 'command',
-        prompt,
-        max_tokens: 1000,
-        temperature: 0.7,
-        response_format: 'json',
-      }),
-    });
+  let retryCount = 0;
+  const maxRetries = 3;
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Cohere API Error:', error);
-      throw new Error(response.status === 429 
-        ? 'Rate limit exceeded. Please wait a moment and try again.'
-        : `API Error: ${response.status} ${response.statusText}`
-      );
-    }
+  while (retryCount < maxRetries) {
+    try {
+      console.log('Sending optimization request to Cohere...');
+      
+      const response = await fetch('https://api.cohere.ai/v1/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${cohereKey}`,
+        },
+        body: JSON.stringify({
+          model: 'command',
+          prompt,
+          max_tokens: 1000,
+          temperature: 0.7,
+          response_format: 'json',
+        }),
+      });
 
-    const rawResponse = await response.json();
-    console.log('Raw AI Response:', rawResponse);
-
-    if (!rawResponse.generations?.[0]?.text) {
-      throw new Error('Invalid API response structure');
-    }
-
-    const generatedText = rawResponse.generations[0].text;
-    console.log('Generated Text:', generatedText);
-
-    const optimizedData = tryParseJson<{ title: string; description: string; tags: string[] }>(
-      generatedText,
-      {
-        title: '',
-        description: '',
-        tags: [],
+      if (!response.ok) {
+        if (response.status === 429) {
+          console.warn('Rate limit exceeded. Retrying...');
+          await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, retryCount))); // Exponential backoff
+          retryCount++;
+          continue;
+        }
+        const error = await response.text();
+        console.error('Cohere API Error:', error);
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
       }
-    );
 
-    // Validate and sanitize the response
-    if (!optimizedData.title || !optimizedData.description || !Array.isArray(optimizedData.tags)) {
-      console.error('Invalid optimization data:', optimizedData);
-      throw new Error('Invalid optimization data received from AI');
+      const rawResponse = await response.json();
+      console.log('Raw AI Response:', rawResponse);
+
+      if (!rawResponse.generations?.[0]?.text) {
+        throw new Error('Invalid API response structure');
+      }
+
+      const generatedText = rawResponse.generations[0].text;
+      console.log('Generated Text:', generatedText);
+
+      const optimizedData = tryParseJson<{ title: string; description: string; tags: string[] }>(
+        generatedText,
+        {
+          title: '',
+          description: '',
+          tags: [],
+        }
+      );
+
+      // Validate and sanitize the response
+      if (!optimizedData.title || !optimizedData.description || !Array.isArray(optimizedData.tags)) {
+        console.error('Invalid optimization data:', optimizedData);
+        throw new Error('Invalid optimization data received from AI');
+      }
+
+      return {
+        title: optimizedData.title.trim().slice(0, 100), // Limit title length
+        description: optimizedData.description.trim(),
+        tags: [...new Set(optimizedData.tags
+          .map(tag => tag.trim())
+          .filter(tag => tag.length > 0)
+          .slice(0, 500))] // Limit number of tags
+      };
+    } catch (error: any) {
+      if (retryCount >= maxRetries - 1) {
+        console.error('Error optimizing metadata:', error);
+        throw new Error(error.message || 'Failed to optimize metadata');
+      }
+      retryCount++;
     }
-
-    return {
-      title: optimizedData.title.trim().slice(0, 100), // Limit title length
-      description: optimizedData.description.trim(),
-      tags: [...new Set(optimizedData.tags
-        .map(tag => tag.trim())
-        .filter(tag => tag.length > 0)
-        .slice(0, 500))] // Limit number of tags
-    };
-  } catch (error: any) {
-    console.error('Error optimizing metadata:', error);
-    throw new Error(error.message || 'Failed to optimize metadata');
   }
+
+  throw new Error('Failed to optimize metadata after multiple retries');
 }
 
 /**
