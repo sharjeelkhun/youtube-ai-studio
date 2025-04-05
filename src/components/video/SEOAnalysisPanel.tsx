@@ -16,24 +16,30 @@ export function SEOAnalysisPanel({ analysis }: SEOAnalysisPanelProps) {
     );
   }
 
+  // Convert decimal scores to percentages
+  const formatScore = (score: number | null) => {
+    if (score === null) return null;
+    return Math.round(score * 100);
+  };
+
   const mergedAnalysis = {
     ...DEFAULT_SEO_ANALYSIS,
     ...analysis,
-    score: analysis.score ?? DEFAULT_SEO_ANALYSIS.score ?? 50,
+    score: formatScore(analysis.score),
     titleAnalysis: {
       ...DEFAULT_SEO_ANALYSIS.titleAnalysis,
       ...analysis.titleAnalysis,
-      score: analysis.titleAnalysis?.score ?? 50
+      score: formatScore(analysis.titleAnalysis?.score)
     },
     descriptionAnalysis: {
       ...DEFAULT_SEO_ANALYSIS.descriptionAnalysis,
       ...analysis.descriptionAnalysis,
-      score: analysis.descriptionAnalysis?.score ?? 50
+      score: formatScore(analysis.descriptionAnalysis?.score)
     },
     tagsAnalysis: {
       ...DEFAULT_SEO_ANALYSIS.tagsAnalysis,
       ...analysis.tagsAnalysis,
-      score: analysis.tagsAnalysis?.score ?? 50
+      score: formatScore(analysis.tagsAnalysis?.score)
     }
   };
 

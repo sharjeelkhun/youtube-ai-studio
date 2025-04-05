@@ -8,9 +8,9 @@ interface SEOScoreIndicatorProps {
 
 export function SEOScoreIndicator({ score, size }: SEOScoreIndicatorProps) {
   const sizeClasses = {
-    sm: 'w-6 h-6 text-sm',
-    md: 'w-8 h-8 text-base',
-    lg: 'w-10 h-10 text-lg',
+    sm: 'w-8 h-8 text-xs font-medium',
+    md: 'w-10 h-10 text-sm font-medium',
+    lg: 'w-12 h-12 text-base font-medium',
   };
 
   if (score === null || score === undefined) {
@@ -28,7 +28,7 @@ export function SEOScoreIndicator({ score, size }: SEOScoreIndicatorProps) {
 
   return (
     <div
-      className={`flex items-center justify-center rounded-full ${getScoreColor(score)} text-white ${sizeClasses[size]}`}
+      className={`flex items-center justify-center rounded-full ${getScoreColor(score)} text-white ${sizeClasses[size]} shadow-sm`}
     >
       {score}%
     </div>
@@ -36,7 +36,7 @@ export function SEOScoreIndicator({ score, size }: SEOScoreIndicatorProps) {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 80) return 'bg-green-500';
+  if (score >= 80) return 'bg-green-600';
   if (score >= 60) return 'bg-yellow-500';
   return 'bg-red-500';
 }

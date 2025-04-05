@@ -23,17 +23,15 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const { data: seoScore, isLoading } = useQuery(
     ['seo-score', video.id, cohereKey],
     async () => {
-      if (!cohereKey) {
-        console.warn('Cohere API key is missing');
-        return null;
-      }
+      if (!cohereKey) return null;
       try {
         const rawResponse = await throttledAnalyzeSEO(video.title, video.description, video.tags);
         const parsedResponse = typeof rawResponse === 'string' ? 
           parseSEOAnalysis(rawResponse) : rawResponse;
 
-        // Access the overall score directly from the SEO analysis
-        return parsedResponse?.score ?? null;
+        // Convert decimal scores to percentages and round to nearest integer
+        const score = parsedResponse?.score;
+        return typeof score === 'number' ? Math.round(score * 100) : null;
       } catch (error: any) {
         console.error('Error calculating SEO score:', error);
         return null;
@@ -41,10 +39,10 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
     },
     {
       enabled: !!cohereKey,
-      staleTime: 30 * 60 * 1000,
-      cacheTime: 60 * 60 * 1000,
-      retry: 2,
-      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 30 * 60 * 1000, // 30 minutes
+      retry: 1,
+      refetchOnWindowFocus: false
     }
   );
 
