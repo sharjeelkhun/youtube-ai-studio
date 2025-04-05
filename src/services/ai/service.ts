@@ -43,7 +43,9 @@ class AIService {
       try {
         console.log(`Attempting with provider: ${provider} (attempt ${attempts + 1})`);
         const response = await this.tryProvider(provider, prompt);
-        const sanitizedResponse = this.sanitizeJsonString(response); // Sanitize JSON
+
+        // Validate and sanitize the response
+        const sanitizedResponse = this.sanitizeJsonString(response);
         const parsedResponse = this.tryParseJson<{ text: string }>(sanitizedResponse, { text: '' });
 
         if (parsedResponse.text) {
@@ -56,15 +58,17 @@ class AIService {
         console.error(`Error with ${provider}:`, error);
         lastError = error;
 
+        // Handle rate limit or invalid API key errors
         if (error.message.includes('429') || error.message.includes('Rate limit')) {
-          attempts++;
-          if (attempts < providers.length) {
-            console.log(`Switching to next provider: ${providers[attempts % providers.length]}`);
-            continue;
-          }
+          console.log(`Rate limit hit for ${provider}. Retrying with next provider...`);
+        } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
+          console.log(`Invalid API key for ${provider}. Skipping to next provider...`);
+        } else {
+          console.log(`Unhandled error with ${provider}. Retrying with next provider...`);
         }
+
+        attempts++;
       }
-      attempts++;
     }
 
     throw lastError || new Error('All AI providers failed or are rate limited. Please try again later.');
@@ -160,29 +164,36 @@ class AIService {
   }
 
   private async generateWithHuggingFace(prompt: string, apiKey: string): Promise<string> {
-    // Using text-generation model instead of gpt2
-    const response = await fetch('https://api-inference.huggingface.co/models/facebook/opt-1.3b', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json', // Add content type header
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: {
-          max_length: 1000,
-          temperature: 0.7,
-          return_full_text: false,
+    try {
+      const response = await fetch('https://api-inference.huggingface.co/models/facebook/opt-1.3b', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
         },
-      }),
-    });
+        body: JSON.stringify({
+          inputs: prompt,
+          parameters: {
+            max_length: 1000,
+            temperature: 0.7,
+            return_full_text: false,
+          },
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`HuggingFace API error: ${response.status}`);
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('HuggingFace API error: 403 (Forbidden)');
+        }
+        throw new Error(`HuggingFace API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return Array.isArray(data) ? data[0].generated_text : data.generated_text;
+    } catch (error) {
+      console.error('Error with HuggingFace API:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    return Array.isArray(data) ? data[0].generated_text : data.generated_text;
   }
 
   private async handleRateLimit(error: any, provider: string, prompt: string): Promise<string> {
