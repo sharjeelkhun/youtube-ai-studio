@@ -50,6 +50,12 @@ export function SettingsTab() {
     huggingface: getKey('huggingface') || '',
     openrouter: getKey('openrouter') || '',
   });
+  const [tokenLimits, setTokenLimits] = useState<Record<string, number | null>>({
+    cohere: null,
+    openai: null,
+    huggingface: null,
+    openrouter: null,
+  });
 
   useEffect(() => {
     // Initialize with stored provider
@@ -69,6 +75,18 @@ export function SettingsTab() {
       });
     }
   }, [getKey]);
+
+  useEffect(() => {
+    async function fetchTokenLimits() {
+      const limits: Record<string, number | null> = {};
+      for (const provider of ['cohere', 'openai', 'huggingface', 'openrouter'] as const) {
+        limits[provider] = await aiService.getTokenUsage(provider);
+      }
+      setTokenLimits(limits);
+    }
+
+    fetchTokenLimits();
+  }, []);
 
   const handleKeyChange = (provider: string, value: string) => {
     setApiKeys((prev) => ({ ...prev, [provider]: value }));
@@ -146,6 +164,11 @@ export function SettingsTab() {
                   </div>
                   <p className="text-gray-600 mt-1">{provider.description}</p>
                   <p className="text-sm text-green-600 font-medium mt-2">{provider.freeTier}</p>
+                  {tokenLimits[provider.id] !== null && (
+                    <p className="text-sm text-blue-600 font-medium mt-2">
+                      Tokens Remaining: {tokenLimits[provider.id]}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <a

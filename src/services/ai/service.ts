@@ -252,6 +252,50 @@ class AIService {
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
+
+  async getTokenUsage(provider: 'cohere' | 'openai' | 'huggingface' | 'openrouter'): Promise<number | null> {
+    const { getKey } = useAPIKeyStore.getState();
+    const apiKey = getKey(provider);
+
+    if (!apiKey) {
+      console.error(`No API key found for ${provider}`);
+      return null;
+    }
+
+    try {
+      switch (provider) {
+        case 'cohere':
+          const cohereResponse = await fetch(`${AI_PROVIDERS.COHERE.baseUrl}/usage`, {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          });
+          if (!cohereResponse.ok) throw new Error('Failed to fetch Cohere usage');
+          const cohereData = await cohereResponse.json();
+          return cohereData.total_tokens_remaining || null;
+
+        case 'openai':
+          const openaiResponse = await fetch(`${AI_PROVIDERS.OPENAI.baseUrl}/usage`, {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          });
+          if (!openaiResponse.ok) throw new Error('Failed to fetch OpenAI usage');
+          const openaiData = await openaiResponse.json();
+          return openaiData.total_tokens_remaining || null;
+
+        case 'huggingface':
+          // HuggingFace does not provide token usage API, return null
+          return null;
+
+        case 'openrouter':
+          // OpenRouter does not provide token usage API, return null
+          return null;
+
+        default:
+          throw new Error(`Unsupported provider: ${provider}`);
+      }
+    } catch (error) {
+      console.error(`Error fetching token usage for ${provider}:`, error);
+      return null;
+    }
+  }
 }
 
 export const aiService = new AIService();
