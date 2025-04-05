@@ -15,23 +15,32 @@ export async function analyzeSEO(title: string, description: string, tags: strin
     return seoCache.get(cacheKey)!;
   }
 
-  try {
-    const response = await aiService.generateContent(`Analyze this YouTube video content for SEO optimization...`);
-    const data = tryParseJson(response, {}) as SEOAnalysis;
-    
-    if (!data || typeof data.score !== 'number') {
-      throw new Error('Invalid SEO analysis data structure');
-    }
+  let retryCount = 0;
+  const maxRetries = 3;
 
-    seoCache.set(cacheKey, data);
-    return data;
-  } catch (error: any) {
-    if (error.message.includes('Rate limit')) {
-      // Let AIService handle the rate limit and provider switching
-      return analyzeSEO(title, description, tags);
+  while (retryCount < maxRetries) {
+    try {
+      const response = await aiService.generateContent(`Analyze this YouTube video content for SEO optimization...`);
+      const data = tryParseJson(response, {}) as SEOAnalysis;
+
+      if (!data || typeof data.score !== 'number') {
+        throw new Error('Invalid SEO analysis data structure');
+      }
+
+      seoCache.set(cacheKey, data);
+      return data;
+    } catch (error: any) {
+      if (error.message.includes('Rate limit')) {
+        await handleRateLimit(retryCount);
+        retryCount++;
+        continue;
+      }
+      console.error('Error analyzing SEO:', error);
+      throw error;
     }
-    throw error;
   }
+
+  throw new Error('Failed to analyze SEO after multiple retries');
 }
 
 /**

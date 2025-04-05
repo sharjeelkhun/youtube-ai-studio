@@ -232,7 +232,7 @@ class AIService {
     const apiKey = getKey(provider);
 
     if (!apiKey) {
-      console.error(`No API key found for ${provider}`);
+      console.warn(`No API key found for ${provider}`);
       return null;
     }
 
@@ -242,6 +242,10 @@ class AIService {
           const cohereResponse = await fetch(`${AI_PROVIDERS.COHERE.baseUrl}/usage`, {
             headers: { Authorization: `Bearer ${apiKey}` },
           });
+          if (cohereResponse.status === 404) {
+            console.warn('Cohere does not support token usage API.');
+            return null;
+          }
           if (!cohereResponse.ok) {
             throw new Error(`Failed to fetch Cohere usage: ${cohereResponse.statusText}`);
           }
@@ -249,14 +253,8 @@ class AIService {
           return cohereData.total_tokens_remaining || null;
 
         case 'openai':
-          const openaiResponse = await fetch(`${AI_PROVIDERS.OPENAI.baseUrl}/usage`, {
-            headers: { Authorization: `Bearer ${apiKey}` },
-          });
-          if (!openaiResponse.ok) {
-            throw new Error(`Failed to fetch OpenAI usage: ${openaiResponse.statusText}`);
-          }
-          const openaiData = await openaiResponse.json();
-          return openaiData.total_tokens_remaining || null;
+          console.warn('OpenAI token usage API is not implemented.');
+          return null;
 
         case 'huggingface':
         case 'openrouter':
