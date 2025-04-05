@@ -1,6 +1,7 @@
 import { useAPIKeyStore } from '../../store/apiKeyStore';
 import { AI_PROVIDERS } from '../../config/aiProviders';
-import { validateSEOAnalysis } from '../../utils/json';
+import { sanitizeJsonString, tryParseJson } from '../../utils/json';
+import { SEOAnalysis } from '../../types/seo';
 
 class AIService {
   private currentProvider: 'cohere' | 'openai' | 'huggingface' | 'openrouter' = 'cohere';
@@ -69,33 +70,68 @@ class AIService {
     }
   }
 
-  private formatSEOResponse(text: string): any {
+  private formatSEOResponse(text: string): SEOAnalysis {
     try {
-      const response = JSON.parse(text);
-      // Ensure response matches expected format
-      if (!validateSEOAnalysis(response)) {
-        // Convert unstructured response to proper format
-        return {
-          score: 0,
-          titleAnalysis: {
-            score: 0,
-            suggestions: [text]
-          },
-          descriptionAnalysis: {
-            score: 0,
-            suggestions: []
-          },
-          tagsAnalysis: {
-            score: 0,
-            suggestions: []
-          }
-        };
+      // First try parsing as direct JSON
+      const parsed = tryParseJson<SEOAnalysis>(text, null);
+      if (parsed && this.validateSEOFormat(parsed)) {
+        return parsed;
       }
-      return response;
+
+      // If direct parse fails, try to extract JSON
+      const sanitized = sanitizeJsonString(text);
+      const extracted = tryParseJson<SEOAnalysis>(sanitized, null);
+      if (extracted && this.validateSEOFormat(extracted)) {
+        return extracted;
+      }
+
+      // If both attempts fail, create a fallback response
+      return this.createFallbackSEOResponse(text);
     } catch (error) {
       console.error('Error formatting SEO response:', error);
-      throw new Error('Invalid SEO analysis format');
+      return this.createFallbackSEOResponse(text);
     }
+  }
+
+  private validateSEOFormat(data: any): boolean {
+    return (
+      data &&
+      typeof data === 'object' &&
+      (typeof data.score === 'number' || data.score === null) &&
+      data.titleAnalysis &&
+      data.descriptionAnalysis &&
+      Array.isArray(data.titleAnalysis.suggestions) &&
+      Array.isArray(data.descriptionAnalysis.suggestions)
+    );
+  }
+
+  private createFallbackSEOResponse(text: string): SEOAnalysis {
+    // Create a valid SEO analysis from unstructured text
+    const lines = text.split('\n').filter(line => line.trim());
+    return {
+      score: null,
+      titleAnalysis: {
+        score: null,
+        suggestions: lines.filter(line => 
+          line.toLowerCase().includes('title') || 
+          line.toLowerCase().includes('headline')
+        )
+      },
+      descriptionAnalysis: {
+        score: null,
+        suggestions: lines.filter(line => 
+          line.toLowerCase().includes('description') || 
+          line.toLowerCase().includes('content')
+        )
+      },
+      tagsAnalysis: {
+        score: null,
+        suggestions: lines.filter(line =>
+          line.toLowerCase().includes('tag') ||
+          line.toLowerCase().includes('keyword')
+        )
+      }
+    };
   }
 
   private async tryProvider(provider: string, prompt: string): Promise<string> {
@@ -140,18 +176,25 @@ class AIService {
             type: 'object',
             required: ['score', 'titleAnalysis', 'descriptionAnalysis'],
             properties: {
-              score: { type: 'number' },
+              score: { type: ['number', 'null'] },
               titleAnalysis: {
                 type: 'object',
                 properties: {
-                  score: { type: 'number' },
+                  score: { type: ['number', 'null'] },
                   suggestions: { type: 'array', items: { type: 'string' } }
                 }
               },
               descriptionAnalysis: {
                 type: 'object',
                 properties: {
-                  score: { type: 'number' },
+                  score: { type: ['number', 'null'] },
+                  suggestions: { type: 'array', items: { type: 'string' } }
+                }
+              },
+              tagsAnalysis: {
+                type: 'object',
+                properties: {
+                  score: { type: ['number', 'null'] },
                   suggestions: { type: 'array', items: { type: 'string' } }
                 }
               }
@@ -165,8 +208,7 @@ class AIService {
       }
 
       const data = await response.json();
-      const text = data.generations?.[0]?.text;
-      return this.formatSEOResponse(text);
+      return data.generations?.[0]?.text || '';
     } catch (error) {
       console.error('Error with Cohere API:', error);
       throw error;
