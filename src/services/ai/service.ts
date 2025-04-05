@@ -37,32 +37,32 @@ class AIService {
     const providers = ['cohere', 'openai', 'huggingface'];
     let attempts = 0;
     let lastError: Error | null = null;
-    
+
     while (attempts < this.maxRetries * providers.length) {
       const provider = providers[attempts % providers.length];
       try {
         console.log(`Attempting with provider: ${provider} (attempt ${attempts + 1})`);
-        
+        const response = await this.tryProvider(provider, prompt); // Ensure response is defined here
         if (response) {
-          this.currentProvider = currentProvider; // Update current provider if successful
+          this.currentProvider = provider; // Update current provider if successful
           return response;
         }
       } catch (error: any) {
-        console.error(`Error with ${providers[attempts]}:`, error);
-        
+        console.error(`Error with ${provider}:`, error);
+        lastError = error;
+
         if (error.message.includes('429') || error.message.includes('Rate limit')) {
           attempts++;
           if (attempts < providers.length) {
-            console.log(`Switching to next provider: ${providers[attempts]}`);
+            console.log(`Switching to next provider: ${providers[attempts % providers.length]}`);
             continue;
           }
         }
-        throw error;
       }
       attempts++;
     }
-    
-    throw new Error('All AI providers failed or are rate limited. Please try again later.');
+
+    throw lastError || new Error('All AI providers failed or are rate limited. Please try again later.');
   }
 
   private async tryProvider(provider: string, prompt: string): Promise<string> {
@@ -157,7 +157,7 @@ class AIService {
     return Array.isArray(data) ? data[0].generated_text : data.generated_text;
   }
 
-  private async handleRateLimit(error: any, provider: string): Promise<string> {
+  private async handleRateLimit(error: any, provider: string, prompt: string): Promise<string> {
     const providers = ['cohere', 'openai', 'huggingface'];
     const currentIndex = providers.indexOf(provider);
     const nextProvider = providers[(currentIndex + 1) % providers.length];
