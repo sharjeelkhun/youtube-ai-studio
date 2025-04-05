@@ -60,7 +60,8 @@ class AIService {
         lastError = error;
 
         if (error.message.includes('429') || error.message.includes('Rate limit')) {
-          console.log(`Rate limit hit for ${provider}. Retrying with next provider...`);
+          console.log(`Rate limit hit for ${provider}. Retrying after delay...`);
+          await this.delay(1000); // Delay before retrying
         } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
           console.log(`Invalid API key for ${provider}. Skipping to next provider...`);
         } else {
@@ -219,6 +220,10 @@ class AIService {
     this.retryCount++;
     
     return this.generateContent(prompt); // Retry with new provider
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
