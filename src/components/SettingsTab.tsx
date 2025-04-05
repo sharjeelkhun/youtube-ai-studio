@@ -197,9 +197,13 @@ export function SettingsTab() {
                   </div>
                   <p className="text-gray-600 mt-1">{provider.description}</p>
                   <p className="text-sm text-green-600 font-medium mt-2">{provider.freeTier}</p>
-                  {tokenLimits[provider.id] !== null && (
-                    <p className="text-sm text-blue-600 font-medium mt-2">
+                  {tokenLimits[provider.id] !== null ? (
+                    <p className="text-sm text-blue-600 font-medium mt-1">
                       Tokens Remaining: {tokenLimits[provider.id]}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Token usage information is not available.
                     </p>
                   )}
                 </div>

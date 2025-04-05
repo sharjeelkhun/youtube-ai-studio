@@ -118,12 +118,12 @@ Response must be ONLY the JSON object, no other text.`;
       }
     );
 
+    // Validate and sanitize the response
     if (!optimizedData.title || !optimizedData.description || !Array.isArray(optimizedData.tags)) {
       console.error('Invalid optimization data:', optimizedData);
       throw new Error('Invalid optimization data received from AI');
     }
 
-    // Validate and sanitize the response
     return {
       title: optimizedData.title.trim().slice(0, 100), // Limit title length
       description: optimizedData.description.trim(),

@@ -1,6 +1,7 @@
 export function sanitizeJsonString(rawString: string): string {
   try {
-    const jsonMatch = rawString.match(/{[\s\S]*}/); // Match the first JSON object in the string
+    // Extract the first valid JSON object from the string
+    const jsonMatch = rawString.match(/{[\s\S]*}/);
     if (!jsonMatch) {
       throw new Error('No valid JSON object found');
     }
