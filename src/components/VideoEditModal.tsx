@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Wand2, Loader2 } from 'lucide-react';
 import { updateVideoDetails } from '../services/videoEditor';
 import { useAuthStore } from '../store/authStore';
@@ -27,6 +27,8 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
     description: video.description,
     tags: video.tags
   });
+
+  const videoForm = useRef<HTMLFormElement>(null);
 
   // Reset form data when video changes
   useEffect(() => {
@@ -95,16 +97,27 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
       });
 
       // Update form data with optimized content
-      setFormData({
-        title: optimizedData.title,
-        description: optimizedData.description,
-        tags: optimizedData.tags
-      });
+      const newFormData = {
+        title: optimizedData.title || formData.title,
+        description: optimizedData.description || formData.description,
+        tags: optimizedData.tags?.length ? optimizedData.tags : formData.tags,
+      };
+
+      setFormData(newFormData);
+
+      // Only update form fields if videoForm ref is available
+      if (videoForm.current) {
+        const titleInput = videoForm.current.querySelector<HTMLInputElement>('input[name="title"]');
+        const descriptionInput = videoForm.current.querySelector<HTMLTextAreaElement>('textarea[name="description"]');
+        
+        if (titleInput) titleInput.value = newFormData.title;
+        if (descriptionInput) descriptionInput.value = newFormData.description;
+      }
 
       const newAnalysis = await analyzeSEO(
-        optimizedData.title,
-        optimizedData.description,
-        optimizedData.tags
+        newFormData.title,
+        newFormData.description,
+        newFormData.tags
       );
       setSeoAnalysis(newAnalysis);
 
@@ -159,6 +172,7 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
               onSubmit={handleSubmit}
               onCancel={onClose}
               isLoading={isLoading}
+              ref={videoForm}
             />
           </div>
 
