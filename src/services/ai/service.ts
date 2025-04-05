@@ -15,7 +15,7 @@ class AIService {
     return !!getKey(this.currentProvider);
   }
 
-  setProvider(provider: 'cohere' | 'openai' | 'huggingface'): boolean {
+  setProvider(provider: 'cohere' | 'openai' | 'huggingface' | 'openrouter'): boolean {
     try {
       const { getKey } = useAPIKeyStore.getState();
       const apiKey = getKey(provider);
@@ -34,7 +34,7 @@ class AIService {
   }
 
   async generateContent(prompt: string): Promise<string> {
-    const providers = ['cohere', 'openai', 'huggingface'];
+    const providers = ['cohere', 'openai', 'huggingface', 'openrouter'];
     let attempts = 0;
     let lastError: Error | null = null;
 
@@ -114,6 +114,8 @@ class AIService {
         return this.generateWithOpenAI(prompt, apiKey);
       case 'huggingface':
         return this.generateWithHuggingFace(prompt, apiKey);
+      case 'openrouter':
+        return this.generateWithOpenRouter(prompt, apiKey);
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
@@ -195,6 +197,34 @@ class AIService {
       return Array.isArray(data) ? data[0].generated_text : data.generated_text;
     } catch (error) {
       console.error('Error with HuggingFace API:', error);
+      throw error;
+    }
+  }
+
+  private async generateWithOpenRouter(prompt: string, apiKey: string): Promise<string> {
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-3.5-turbo',
+          prompt,
+          max_tokens: 1000,
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenRouter API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0]?.text || '';
+    } catch (error) {
+      console.error('Error with OpenRouter API:', error);
       throw error;
     }
   }

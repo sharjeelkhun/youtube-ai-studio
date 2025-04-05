@@ -14,4 +14,9 @@ export const AI_PROVIDERS = {
     baseUrl: 'https://api-inference.huggingface.co/models',
     freeTier: 'Free tier available',
   },
+  OPENROUTER: {
+    name: 'OpenRouter',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    freeTier: 'Free tier available',
+  },
 };

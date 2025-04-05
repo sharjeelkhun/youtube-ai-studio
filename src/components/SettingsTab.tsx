@@ -31,6 +31,14 @@ const aiProviders = [
     freeTier: 'Free tier available',
     icon: '🤗',
   },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    description: 'Free alternative for AI-powered content generation',
+    setupUrl: 'https://openrouter.ai/signup',
+    freeTier: 'Free tier available',
+    icon: '🌐',
+  },
 ];
 
 export function SettingsTab() {
@@ -40,6 +48,7 @@ export function SettingsTab() {
     cohere: getKey('cohere') || '',
     openai: getKey('openai') || '',
     huggingface: getKey('huggingface') || '',
+    openrouter: getKey('openrouter') || '',
   });
 
   useEffect(() => {
@@ -66,14 +75,14 @@ export function SettingsTab() {
   };
 
   const handleKeySave = (provider: string) => {
-    const key = apiKeys[provider as keyof typeof apiKeys];
+    const key = apiKeys[provider];
     if (!key) {
       toast.error(`Please enter a valid API key for ${provider}`);
       return;
     }
 
     setKey(provider, key);
-    if (aiService.setProvider(provider as 'cohere' | 'openai' | 'huggingface')) {
+    if (aiService.setProvider(provider as 'cohere' | 'openai' | 'huggingface' | 'openrouter')) {
       setSelectedProvider(provider);
       toast.success(`${provider} API key saved successfully`);
     } else {
@@ -89,7 +98,7 @@ export function SettingsTab() {
     }
 
     try {
-      if (aiService.setProvider(providerId as 'cohere' | 'openai' | 'huggingface')) {
+      if (aiService.setProvider(providerId as 'cohere' | 'openai' | 'huggingface' | 'openrouter')) {
         setSelectedProvider(providerId);
         toast.success(`${providerId} set as active AI provider`);
       } else {
