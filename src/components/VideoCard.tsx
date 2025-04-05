@@ -19,21 +19,21 @@ interface VideoCardProps {
 export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const { getKey } = useAPIKeyStore();
   const cohereKey = getKey('cohere');
-  console.log('Retrieved Cohere API Key:', cohereKey); // Debug log
 
   const { data: seoScore, isLoading } = useQuery(
     ['seo-score', video.id, cohereKey],
     async () => {
       if (!cohereKey) {
-        toast.error('Cohere API key is missing. Please configure it in settings.');
+        console.warn('Cohere API key is missing');
         return null;
       }
       try {
         const rawResponse = await throttledAnalyzeSEO(video.title, video.description, video.tags);
-        const parsedResponse =
-          typeof rawResponse === 'string' ? parseSEOAnalysis(rawResponse) : rawResponse;
+        const parsedResponse = typeof rawResponse === 'string' ? 
+          parseSEOAnalysis(rawResponse) : rawResponse;
 
-        return parsedResponse?.analysis?.title?.score ?? null;
+        // Access the overall score directly from the SEO analysis
+        return parsedResponse?.score ?? null;
       } catch (error: any) {
         console.error('Error calculating SEO score:', error);
         return null;
@@ -43,7 +43,7 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       enabled: !!cohereKey,
       staleTime: 30 * 60 * 1000,
       cacheTime: 60 * 60 * 1000,
-      retry: false,
+      retry: 2,
       refetchOnWindowFocus: false,
     }
   );

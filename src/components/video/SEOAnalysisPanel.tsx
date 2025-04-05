@@ -18,7 +18,23 @@ export function SEOAnalysisPanel({ analysis }: SEOAnalysisPanelProps) {
 
   const mergedAnalysis = {
     ...DEFAULT_SEO_ANALYSIS,
-    ...analysis
+    ...analysis,
+    score: analysis.score ?? DEFAULT_SEO_ANALYSIS.score ?? 50,
+    titleAnalysis: {
+      ...DEFAULT_SEO_ANALYSIS.titleAnalysis,
+      ...analysis.titleAnalysis,
+      score: analysis.titleAnalysis?.score ?? 50
+    },
+    descriptionAnalysis: {
+      ...DEFAULT_SEO_ANALYSIS.descriptionAnalysis,
+      ...analysis.descriptionAnalysis,
+      score: analysis.descriptionAnalysis?.score ?? 50
+    },
+    tagsAnalysis: {
+      ...DEFAULT_SEO_ANALYSIS.tagsAnalysis,
+      ...analysis.tagsAnalysis,
+      score: analysis.tagsAnalysis?.score ?? 50
+    }
   };
 
   return (
