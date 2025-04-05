@@ -2,6 +2,7 @@ import { useAPIKeyStore } from '../../store/apiKeyStore';
 import { AI_PROVIDERS } from '../../config/aiProviders';
 import { sanitizeJsonString, tryParseJson } from '../../utils/json';
 import { SEOAnalysis } from '../../types/seo';
+import { RateLimiter } from '../../utils/rateLimiter';
 
 const DEFAULT_SEO_ANALYSIS: SEOAnalysis = {
   score: 0,
@@ -24,6 +25,12 @@ class AIService {
   private currentProvider: 'cohere' | 'openai' | 'huggingface' | 'openrouter' = 'cohere';
   private retryCount: number = 0;
   private maxRetries: number = 3;
+  private rateLimiter: RateLimiter;
+
+  constructor() {
+    // Allow 5 requests per minute
+    this.rateLimiter = new RateLimiter(5);
+  }
 
   getCurrentProvider(): string {
     return this.currentProvider;
@@ -66,13 +73,26 @@ class AIService {
 
   private sanitizeJsonString(rawString: string): string {
     try {
-      const jsonMatch = rawString.match(/{[\s\S]*}/); // Match the first JSON object in the string
-      if (!jsonMatch) {
-        throw new Error('No valid JSON object found');
+      if (typeof rawString !== 'string') {
+        throw new Error('Input must be a string');
       }
-      return jsonMatch[0]; // Return the matched JSON object
+
+      // Remove any leading/trailing non-JSON content
+      const jsonStart = rawString.indexOf('{');
+      const jsonEnd = rawString.lastIndexOf('}');
+      
+      if (jsonStart === -1 || jsonEnd === -1) {
+        throw new Error('No JSON object found in string');
+      }
+
+      const jsonStr = rawString.slice(jsonStart, jsonEnd + 1);
+      
+      // Validate JSON structure
+      JSON.parse(jsonStr); // Will throw if invalid
+      return jsonStr;
     } catch (error) {
-      console.error('Error sanitizing JSON string:', error);
+      console.error('Error sanitizing JSON:', error);
+      console.debug('Raw input:', rawString);
       throw new Error('Failed to sanitize JSON string');
     }
   }
@@ -209,61 +229,74 @@ class AIService {
   }
 
   private async generateWithCohere(prompt: string, apiKey: string): Promise<string> {
-    try {
-      const response = await fetch(`${AI_PROVIDERS.COHERE.baseUrl}/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          'Cohere-Version': '2022-12-06'
-        },
-        body: JSON.stringify({
-          model: 'command',
-          prompt,
-          max_tokens: 1000,
-          temperature: 0.7,
-          format: 'json',
-          json_schema: {
-            type: 'object',
-            required: ['score', 'titleAnalysis', 'descriptionAnalysis'],
-            properties: {
-              score: { type: ['number', 'null'] },
-              titleAnalysis: {
-                type: 'object',
-                properties: {
-                  score: { type: ['number', 'null'] },
-                  suggestions: { type: 'array', items: { type: 'string' } }
-                }
-              },
-              descriptionAnalysis: {
-                type: 'object',
-                properties: {
-                  score: { type: ['number', 'null'] },
-                  suggestions: { type: 'array', items: { type: 'string' } }
-                }
-              },
-              tagsAnalysis: {
-                type: 'object',
-                properties: {
-                  score: { type: ['number', 'null'] },
-                  suggestions: { type: 'array', items: { type: 'string' } }
+    return this.rateLimiter.execute(async () => {
+      try {
+        console.log('Sending optimization request to Cohere...');
+        const response = await fetch(`${AI_PROVIDERS.COHERE.baseUrl}/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'Cohere-Version': '2022-12-06'
+          },
+          body: JSON.stringify({
+            model: 'command',
+            prompt,
+            max_tokens: 1000,
+            temperature: 0.7,
+            format: 'json',
+            json_schema: {
+              type: 'object',
+              required: ['score', 'titleAnalysis', 'descriptionAnalysis'],
+              properties: {
+                score: { type: ['number', 'null'] },
+                titleAnalysis: {
+                  type: 'object',
+                  required: ['score', 'suggestions'],
+                  properties: {
+                    score: { type: ['number', 'null'] },
+                    suggestions: { type: 'array', items: { type: 'string' } }
+                  }
+                },
+                descriptionAnalysis: {
+                  type: 'object',
+                  required: ['score', 'suggestions'],
+                  properties: {
+                    score: { type: ['number', 'null'] },
+                    suggestions: { type: 'array', items: { type: 'string' } }
+                  }
                 }
               }
             }
-          }
-        })
-      });
+          })
+        });
 
-      if (!response.ok) {
-        throw new Error(`Cohere API error: ${response.status}`);
+        if (response.status === 429) {
+          throw new Error('Rate limit exceeded');
+        }
+
+        if (!response.ok) {
+          throw new Error(`Cohere API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Raw AI Response:', data);
+        const text = data.generations?.[0]?.text;
+        console.log('Generated Text:', text);
+        
+        if (!text) {
+          throw new Error('Empty response from Cohere');
+        }
+
+        return text;
+      } catch (error: any) {
+        if (error.message.includes('Rate limit')) {
+          await this.handleRateLimit('cohere', prompt);
+        }
+        console.error('Error with Cohere API:', error);
+        throw error;
       }
-
-      const data = await response.json();
-      return data.generations?.[0]?.text || '';
-    } catch (error) {
-      console.error('Error with Cohere API:', error);
-      throw error;
-    }
+    });
   }
 
   private async generateWithOpenAI(prompt: string, apiKey: string): Promise<string> {
@@ -346,28 +379,18 @@ class AIService {
     }
   }
 
-  private async handleRateLimit(error: any, provider: string, prompt: string): Promise<string> {
-    const providers: Array<'cohere' | 'openai' | 'huggingface' | 'openrouter'> = ['cohere', 'openai', 'huggingface', 'openrouter'];
-    const currentIndex = providers.indexOf(provider as 'cohere' | 'openai' | 'huggingface' | 'openrouter');
-    const nextProvider = providers[(currentIndex + 1) % providers.length];
-
-    console.log(`Rate limited on ${provider}, switching to ${nextProvider}...`);
-
-    const { getKey } = useAPIKeyStore.getState();
-    const nextApiKey = getKey(nextProvider);
-
-    if (!nextApiKey) {
-      throw new Error(`No API key available for ${nextProvider}. Please configure in settings.`);
-    }
-
-    this.currentProvider = nextProvider; // Assign validated provider
-
-    // Add exponential backoff
-    const backoffTime = Math.min(1000 * Math.pow(2, this.retryCount), 10000);
+  private async handleRateLimit(currentProvider: string, prompt: string): Promise<string> {
+    const backoffTime = Math.min(1000 * Math.pow(2, this.retryCount), 30000);
+    console.warn(`Rate limit hit for ${currentProvider}, waiting ${backoffTime}ms`);
     await new Promise(resolve => setTimeout(resolve, backoffTime));
     this.retryCount++;
 
-    return this.generateContent(prompt); // Retry with new provider
+    if (this.retryCount >= this.maxRetries) {
+      this.retryCount = 0;
+      throw new Error('Max retries exceeded');
+    }
+
+    return this.generateContent(prompt);
   }
 
   private delay(ms: number): Promise<void> {
