@@ -259,11 +259,8 @@ class AIService {
           return openaiData.total_tokens_remaining || null;
 
         case 'huggingface':
-          console.warn('HuggingFace does not provide a token usage API.');
-          return null;
-
         case 'openrouter':
-          console.warn('OpenRouter does not provide a token usage API.');
+          console.warn(`${provider} does not support token usage API.`);
           return null;
 
         default:

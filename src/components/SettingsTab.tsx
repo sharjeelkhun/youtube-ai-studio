@@ -173,9 +173,9 @@ export function SettingsTab() {
         )}
 
         {selectedProvider && tokenLimit === null && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
-            <p className="text-red-800">
-              Unable to fetch token usage for {selectedProvider}. Please check your API key or provider configuration.
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8">
+            <p className="text-gray-800">
+              Token usage information is not available for {selectedProvider}.
             </p>
           </div>
         )}
