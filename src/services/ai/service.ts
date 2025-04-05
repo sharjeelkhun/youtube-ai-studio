@@ -2,7 +2,7 @@ import { useAPIKeyStore } from '../../store/apiKeyStore';
 import { AI_PROVIDERS } from '../../config/aiProviders';
 
 class AIService {
-  private currentProvider: string = 'cohere';
+  private currentProvider: 'cohere' | 'openai' | 'huggingface' | 'openrouter' = 'cohere';
   private retryCount: number = 0;
   private maxRetries: number = 3;
 
@@ -16,30 +16,26 @@ class AIService {
   }
 
   setProvider(provider: 'cohere' | 'openai' | 'huggingface' | 'openrouter'): boolean {
-    try {
-      const { getKey } = useAPIKeyStore.getState();
-      const apiKey = getKey(provider);
-      
-      if (!apiKey) {
-        console.error(`No API key found for ${provider}`);
-        return false;
-      }
+    const { getKey } = useAPIKeyStore.getState();
+    const apiKey = getKey(provider);
 
-      this.currentProvider = provider;
-      return true;
-    } catch (error) {
-      console.error('Error setting provider:', error);
+    if (!apiKey) {
+      console.error(`No API key found for ${provider}`);
       return false;
     }
+
+    this.currentProvider = provider;
+    console.log(`Switched to provider: ${provider}`);
+    return true;
   }
 
   async generateContent(prompt: string): Promise<string> {
-    const providers = ['cohere', 'openai', 'huggingface', 'openrouter'];
+    const providers: Array<'cohere' | 'openai' | 'huggingface' | 'openrouter'> = [this.currentProvider, 'cohere', 'openai', 'huggingface', 'openrouter'];
     let attempts = 0;
     let lastError: Error | null = null;
 
     while (attempts < this.maxRetries * providers.length) {
-      const provider = providers[attempts % providers.length];
+      const provider = providers[attempts % providers.length] as 'cohere' | 'openai' | 'huggingface' | 'openrouter'; // Ensure proper typing
       try {
         console.log(`Attempting with provider: ${provider} (attempt ${attempts + 1})`);
         const response = await this.tryProvider(provider, prompt);
@@ -230,26 +226,26 @@ class AIService {
   }
 
   private async handleRateLimit(error: any, provider: string, prompt: string): Promise<string> {
-    const providers = ['cohere', 'openai', 'huggingface'];
-    const currentIndex = providers.indexOf(provider);
+    const providers: Array<'cohere' | 'openai' | 'huggingface' | 'openrouter'> = ['cohere', 'openai', 'huggingface', 'openrouter'];
+    const currentIndex = providers.indexOf(provider as 'cohere' | 'openai' | 'huggingface' | 'openrouter');
     const nextProvider = providers[(currentIndex + 1) % providers.length];
-    
+
     console.log(`Rate limited on ${provider}, switching to ${nextProvider}...`);
-    
+
     const { getKey } = useAPIKeyStore.getState();
     const nextApiKey = getKey(nextProvider);
-    
+
     if (!nextApiKey) {
       throw new Error(`No API key available for ${nextProvider}. Please configure in settings.`);
     }
-    
-    this.currentProvider = nextProvider;
-    
+
+    this.currentProvider = nextProvider; // Assign validated provider
+
     // Add exponential backoff
     const backoffTime = Math.min(1000 * Math.pow(2, this.retryCount), 10000);
     await new Promise(resolve => setTimeout(resolve, backoffTime));
     this.retryCount++;
-    
+
     return this.generateContent(prompt); // Retry with new provider
   }
 
