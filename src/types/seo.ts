@@ -1,19 +1,36 @@
 export interface SEOAnalysis {
-  score: number;
+  score: number | null;
   titleAnalysis: {
-    score: number;
+    score: number | null;
     suggestions: string[];
   };
   descriptionAnalysis: {
-    score: number;
+    score: number | null;
     suggestions: string[];
   };
   tagsAnalysis: {
-    score: number;
+    score: number | null;
     suggestions: string[];
   };
   overallSuggestions: string[];
 }
+
+export const DEFAULT_SEO_ANALYSIS: SEOAnalysis = {
+  score: null,
+  titleAnalysis: {
+    score: null,
+    suggestions: []
+  },
+  descriptionAnalysis: {
+    score: null,
+    suggestions: []
+  },
+  tagsAnalysis: {
+    score: null,
+    suggestions: []
+  },
+  overallSuggestions: []
+};
 
 export interface SEOMetrics {
   titleLength: number;

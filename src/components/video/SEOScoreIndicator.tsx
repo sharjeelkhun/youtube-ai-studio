@@ -1,27 +1,42 @@
 import React from 'react';
+import { AlertCircle } from 'lucide-react';
 
 interface SEOScoreIndicatorProps {
-  score: number;
+  score: number | null;
   size: 'sm' | 'md' | 'lg';
 }
 
 export function SEOScoreIndicator({ score, size }: SEOScoreIndicatorProps) {
-  if (typeof score !== 'number' || score < 0 || score > 100) {
-    console.error('Invalid SEO score:', score);
-    return null; // Render nothing if the score is invalid
-  }
-
   const sizeClasses = {
     sm: 'w-6 h-6 text-sm',
     md: 'w-8 h-8 text-base',
     lg: 'w-10 h-10 text-lg',
   };
 
+  if (score === null || score === undefined) {
+    return (
+      <div className={`flex items-center justify-center rounded-full bg-gray-300 text-white ${sizeClasses[size]}`}>
+        <AlertCircle className="w-4 h-4" />
+      </div>
+    );
+  }
+
+  if (score < 0 || score > 100) {
+    console.error('Invalid SEO score:', score);
+    return null;
+  }
+
   return (
     <div
-      className={`flex items-center justify-center rounded-full bg-green-500 text-white ${sizeClasses[size]}`}
+      className={`flex items-center justify-center rounded-full ${getScoreColor(score)} text-white ${sizeClasses[size]}`}
     >
       {score}%
     </div>
   );
+}
+
+function getScoreColor(score: number): string {
+  if (score >= 80) return 'bg-green-500';
+  if (score >= 60) return 'bg-yellow-500';
+  return 'bg-red-500';
 }

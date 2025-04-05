@@ -3,6 +3,23 @@ import { AI_PROVIDERS } from '../../config/aiProviders';
 import { sanitizeJsonString, tryParseJson } from '../../utils/json';
 import { SEOAnalysis } from '../../types/seo';
 
+const DEFAULT_SEO_ANALYSIS: SEOAnalysis = {
+  score: 0,
+  titleAnalysis: {
+    score: 0,
+    suggestions: []
+  },
+  descriptionAnalysis: {
+    score: 0,
+    suggestions: []
+  },
+  tagsAnalysis: {
+    score: 0,
+    suggestions: []
+  },
+  overallSuggestions: []
+};
+
 class AIService {
   private currentProvider: 'cohere' | 'openai' | 'huggingface' | 'openrouter' = 'cohere';
   private retryCount: number = 0;
@@ -73,64 +90,98 @@ class AIService {
   private formatSEOResponse(text: string): SEOAnalysis {
     try {
       // First try parsing as direct JSON
-      const parsed = tryParseJson<SEOAnalysis>(text, null);
+      const parsed = tryParseJson<SEOAnalysis>(text, DEFAULT_SEO_ANALYSIS);
       if (parsed && this.validateSEOFormat(parsed)) {
-        return parsed;
+        return this.normalizeSEOScores(parsed);
       }
 
       // If direct parse fails, try to extract JSON
       const sanitized = sanitizeJsonString(text);
-      const extracted = tryParseJson<SEOAnalysis>(sanitized, null);
+      const extracted = tryParseJson<SEOAnalysis>(sanitized, DEFAULT_SEO_ANALYSIS);
       if (extracted && this.validateSEOFormat(extracted)) {
-        return extracted;
+        return this.normalizeSEOScores(extracted);
       }
 
       // If both attempts fail, create a fallback response
       return this.createFallbackSEOResponse(text);
     } catch (error) {
       console.error('Error formatting SEO response:', error);
-      return this.createFallbackSEOResponse(text);
+      return DEFAULT_SEO_ANALYSIS;
     }
   }
 
   private validateSEOFormat(data: any): boolean {
-    return (
-      data &&
-      typeof data === 'object' &&
+    if (!data || typeof data !== 'object') return false;
+
+    const hasValidScores = 
       (typeof data.score === 'number' || data.score === null) &&
-      data.titleAnalysis &&
-      data.descriptionAnalysis &&
-      Array.isArray(data.titleAnalysis.suggestions) &&
-      Array.isArray(data.descriptionAnalysis.suggestions)
-    );
+      data.titleAnalysis?.score !== undefined &&
+      data.descriptionAnalysis?.score !== undefined &&
+      data.tagsAnalysis?.score !== undefined;
+
+    const hasValidSuggestions = 
+      Array.isArray(data.titleAnalysis?.suggestions) &&
+      Array.isArray(data.descriptionAnalysis?.suggestions) &&
+      Array.isArray(data.tagsAnalysis?.suggestions);
+
+    return hasValidScores && hasValidSuggestions;
+  }
+
+  private normalizeSEOScores(analysis: SEOAnalysis): SEOAnalysis {
+    return {
+      score: analysis.score || 0,
+      titleAnalysis: {
+        score: analysis.titleAnalysis?.score || 0,
+        suggestions: analysis.titleAnalysis?.suggestions || []
+      },
+      descriptionAnalysis: {
+        score: analysis.descriptionAnalysis?.score || 0,
+        suggestions: analysis.descriptionAnalysis?.suggestions || []
+      },
+      tagsAnalysis: {
+        score: analysis.tagsAnalysis?.score || 0,
+        suggestions: analysis.tagsAnalysis?.suggestions || []
+      },
+      overallSuggestions: analysis.overallSuggestions || []
+    };
   }
 
   private createFallbackSEOResponse(text: string): SEOAnalysis {
-    // Create a valid SEO analysis from unstructured text
     const lines = text.split('\n').filter(line => line.trim());
+    const suggestions = {
+      title: lines.filter(line => 
+        line.toLowerCase().includes('title') || 
+        line.toLowerCase().includes('headline')
+      ),
+      description: lines.filter(line => 
+        line.toLowerCase().includes('description') || 
+        line.toLowerCase().includes('content')
+      ),
+      tags: lines.filter(line =>
+        line.toLowerCase().includes('tag') ||
+        line.toLowerCase().includes('keyword')
+      )
+    };
+
     return {
-      score: null,
+      score: 0,
       titleAnalysis: {
-        score: null,
-        suggestions: lines.filter(line => 
-          line.toLowerCase().includes('title') || 
-          line.toLowerCase().includes('headline')
-        )
+        score: suggestions.title.length > 0 ? 50 : 0,
+        suggestions: suggestions.title
       },
       descriptionAnalysis: {
-        score: null,
-        suggestions: lines.filter(line => 
-          line.toLowerCase().includes('description') || 
-          line.toLowerCase().includes('content')
-        )
+        score: suggestions.description.length > 0 ? 50 : 0,
+        suggestions: suggestions.description
       },
       tagsAnalysis: {
-        score: null,
-        suggestions: lines.filter(line =>
-          line.toLowerCase().includes('tag') ||
-          line.toLowerCase().includes('keyword')
-        )
-      }
+        score: suggestions.tags.length > 0 ? 50 : 0,
+        suggestions: suggestions.tags
+      },
+      overallSuggestions: lines.filter(line => 
+        !suggestions.title.includes(line) &&
+        !suggestions.description.includes(line) &&
+        !suggestions.tags.includes(line)
+      )
     };
   }
 
