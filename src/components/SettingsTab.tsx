@@ -92,8 +92,13 @@ export function SettingsTab() {
   useEffect(() => {
     async function fetchTokenLimit() {
       if (selectedProvider) {
-        const limit = await aiService.getTokenUsage(selectedProvider as 'cohere' | 'openai' | 'huggingface' | 'openrouter');
-        setTokenLimit(limit);
+        try {
+          const limit = await aiService.getTokenUsage(selectedProvider as 'cohere' | 'openai' | 'huggingface' | 'openrouter');
+          setTokenLimit(limit);
+        } catch (error) {
+          console.error(`Error fetching token usage for ${selectedProvider}:`, error);
+          setTokenLimit(null);
+        }
       }
     }
 

@@ -76,8 +76,11 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
     setIsOptimizing(true);
     try {
       const optimizedData = await getOptimizedMetadata({
-        ...video,
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        tags: formData.tags,
+        views: video.views,
+        likes: video.likes,
       });
 
       setFormData(optimizedData);
