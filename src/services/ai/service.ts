@@ -42,10 +42,15 @@ class AIService {
       const provider = providers[attempts % providers.length];
       try {
         console.log(`Attempting with provider: ${provider} (attempt ${attempts + 1})`);
-        const response = await this.tryProvider(provider, prompt); // Ensure response is defined here
-        if (response) {
+        const response = await this.tryProvider(provider, prompt);
+        const sanitizedResponse = this.sanitizeJsonString(response); // Sanitize JSON
+        const parsedResponse = this.tryParseJson<{ text: string }>(sanitizedResponse, { text: '' });
+
+        if (parsedResponse.text) {
           this.currentProvider = provider; // Update current provider if successful
-          return response;
+          return parsedResponse.text;
+        } else {
+          throw new Error('Invalid response structure');
         }
       } catch (error: any) {
         console.error(`Error with ${provider}:`, error);
@@ -63,6 +68,29 @@ class AIService {
     }
 
     throw lastError || new Error('All AI providers failed or are rate limited. Please try again later.');
+  }
+
+  private sanitizeJsonString(rawString: string): string {
+    try {
+      const jsonMatch = rawString.match(/{[\s\S]*}/); // Match the first JSON object in the string
+      if (!jsonMatch) {
+        throw new Error('No valid JSON object found');
+      }
+      return jsonMatch[0]; // Return the matched JSON object
+    } catch (error) {
+      console.error('Error sanitizing JSON string:', error);
+      throw new Error('Failed to sanitize JSON string');
+    }
+  }
+
+  private tryParseJson<T>(jsonString: string, fallback: T): T {
+    try {
+      return JSON.parse(jsonString);
+    } catch (error) {
+      console.error('JSON Parse Error. Original:', jsonString);
+      console.error('Parse Error:', error);
+      return fallback;
+    }
   }
 
   private async tryProvider(provider: string, prompt: string): Promise<string> {
