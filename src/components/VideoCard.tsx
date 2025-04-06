@@ -26,6 +26,7 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const cohereKey = getKey('cohere');
   const queryClient = useQueryClient();
   const storedScore = useSEOStore((state) => state.getScore(video.id));
+  const retryCountRef = React.useRef(0);
   const batchIndex = React.useRef(Math.floor(Math.random() * BATCH_SIZE));
 
   const { data: seoScore, isLoading } = useQuery(
@@ -68,9 +69,16 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       } catch (error: any) {
         console.error('Error calculating SEO score:', error);
         if (error.message?.includes('Rate limit')) {
-          const retryCount = queryClient.getQueryData(['retry-count']) || 0;
-          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
-          queryClient.setQueryData(['retry-count'], retryCount + 1);
+          // Handle rate limit with local ref counter
+          const backoffTime = Math.min(1000 * Math.pow(2, retryCountRef.current), 30000);
+          retryCountRef.current += 1;
+          await new Promise(resolve => setTimeout(resolve, backoffTime));
+          
+          // Reset retry count after max retries
+          if (retryCountRef.current >= 3) {
+            retryCountRef.current = 0;
+            throw new Error('Max retries exceeded');
+          }
         }
       }
       return null;
@@ -83,6 +91,10 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
       initialData: storedScore && typeof storedScore.score === 'number' ? 
         Math.min(Math.max(Math.round(storedScore.score * 100), 0), 100) : undefined,
+      onError: () => {
+        // Reset retry count on error
+        retryCountRef.current = 0;
+      },
     }
   );
 
