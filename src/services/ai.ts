@@ -12,17 +12,31 @@ const seoCache = new Map<string, SEOAnalysis>();
 // Global rate limiting
 const requestQueue: Array<() => Promise<any>> = [];
 let isProcessing = false;
+let lastRequestTime = Date.now();
+const MIN_REQUEST_DELAY = 2000; // 2 seconds between requests
 
 const processQueue = async () => {
   if (isProcessing) return;
   isProcessing = true;
 
   while (requestQueue.length > 0) {
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime;
+    
+    if (timeSinceLastRequest < MIN_REQUEST_DELAY) {
+      await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_DELAY - timeSinceLastRequest));
+    }
+
     const request = requestQueue.shift();
     if (request) {
-      await request();
-      // Wait between requests
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      lastRequestTime = Date.now();
+      try {
+        await request();
+      } catch (error) {
+        console.error('Queue processing error:', error);
+        // Add delay after error
+        await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_DELAY));
+      }
     }
   }
 

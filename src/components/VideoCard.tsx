@@ -11,6 +11,10 @@ import { useSEOStore } from '../store/seoStore';
 import { useQuery, useQueryClient } from 'react-query';
 import toast from 'react-hot-toast';
 
+// Add batch size and delay constants
+const BATCH_SIZE = 3;
+const DELAY_BETWEEN_BATCHES = 5000;
+
 interface VideoCardProps {
   video: VideoData;
   onEdit: () => void;
@@ -22,34 +26,40 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const cohereKey = getKey('cohere');
   const queryClient = useQueryClient();
   const storedScore = useSEOStore((state) => state.getScore(video.id));
+  const batchIndex = React.useRef(Math.floor(Math.random() * BATCH_SIZE));
 
   const { data: seoScore, isLoading } = useQuery(
     ['seo-score', video.id],
     async () => {
       if (!cohereKey) return null;
       
-      // Validate stored score
+      // Return stored score if valid
       if (storedScore && typeof storedScore.score === 'number') {
         const score = Math.round(storedScore.score * 100);
-        return score >= 0 && score <= 100 ? score : null;
+        if (score >= 0 && score <= 100) {
+          return score;
+        }
       }
 
       try {
-        // Add delay between requests
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 2000)); // Random delay up to 2s
+        // Stagger requests in batches
+        const batchDelay = (batchIndex.current * DELAY_BETWEEN_BATCHES) / BATCH_SIZE;
+        await new Promise(resolve => setTimeout(resolve, batchDelay));
 
         const rawResponse = await throttledAnalyzeSEO(video.title, video.description, video.tags);
         const parsedResponse = typeof rawResponse === 'string' ? 
           parseSEOAnalysis(rawResponse) : rawResponse;
 
         if (parsedResponse && typeof parsedResponse.score === 'number') {
-          // Normalize score to avoid all videos having same score
-          const normalizedScore = Math.round((parsedResponse.score + Math.random() * 0.2 - 0.1) * 100);
-          const finalScore = Math.max(0, Math.min(100, normalizedScore));
+          // Ensure score is within valid range
+          const baseScore = Math.min(Math.max(parsedResponse.score, 0), 1);
+          // Add small random variation
+          const variation = (Math.random() * 0.1) - 0.05; // ±5%
+          const finalScore = Math.round((baseScore + variation) * 100);
           
           const analysisWithNormalizedScore = {
             ...parsedResponse,
-            score: finalScore / 100 // Convert back to decimal for storage
+            score: finalScore / 100
           };
           
           useSEOStore.getState().setScore(video.id, analysisWithNormalizedScore);
@@ -58,22 +68,21 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       } catch (error: any) {
         console.error('Error calculating SEO score:', error);
         if (error.message?.includes('Rate limit')) {
-          // Add exponential backoff for rate limits
-          const backoffTime = Math.min(1000 * Math.pow(2, queryClient.getQueryData(['retry-count']) || 0), 30000);
-          await new Promise(resolve => setTimeout(resolve, backoffTime));
-          queryClient.setQueryData(['retry-count'], (count: number = 0) => count + 1);
+          const retryCount = queryClient.getQueryData(['retry-count']) || 0;
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+          queryClient.setQueryData(['retry-count'], retryCount + 1);
         }
       }
       return null;
     },
     {
       enabled: !!cohereKey,
-      staleTime: Infinity,
+      staleTime: 24 * 60 * 60 * 1000, // 24 hours
       cacheTime: Infinity,
-      retry: 3,
+      retry: 2,
       retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
       initialData: storedScore && typeof storedScore.score === 'number' ? 
-        Math.round(storedScore.score * 100) : undefined,
+        Math.min(Math.max(Math.round(storedScore.score * 100), 0), 100) : undefined,
     }
   );
 
