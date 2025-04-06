@@ -9,6 +9,7 @@ import { aiService } from '../services/ai/service';
 import { SEOAnalysisPanel } from './video/SEOAnalysisPanel';
 import toast from 'react-hot-toast';
 import { refreshSession } from '../services/auth';
+import { format } from 'date-fns';
 
 interface VideoEditModalProps {
   video: VideoData;
@@ -132,43 +133,54 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Edit Video Details</h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleOptimize}
-              disabled={isOptimizing}
-              className="flex items-center gap-2 px-4 py-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50"
-            >
-              {isOptimizing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Wand2 className="w-4 h-4" />
-              )}
-              {isOptimizing ? 'Optimizing...' : 'AI Optimize'}
-            </button>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
+        <div className="flex justify-between items-center p-6 border-b">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-semibold text-gray-900">Edit Video Details</h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleOptimize}
+                disabled={isOptimizing}
+                className="flex items-center gap-2 px-4 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isOptimizing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Wand2 className="w-4 h-4" />
+                )}
+                {isOptimizing ? 'Optimizing...' : 'AI Optimize'}
+              </button>
+            </div>
           </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>
-            <div className="mb-6">
-              <img
-                src={video.thumbnail}
-                alt={video.title}
-                className="w-full aspect-video object-cover rounded-lg"
-              />
+        <div className="grid grid-cols-1 lg:grid-cols-2 h-[calc(90vh-80px)]">
+          <div className="p-6 overflow-y-auto border-r">
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="aspect-video rounded-lg overflow-hidden shadow-sm mb-4">
+                <img
+                  src={video.thumbnail}
+                  alt={video.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <span>{format(new Date(video.uploadDate), 'MMM d, yyyy')}</span>
+                <div className="flex items-center gap-4">
+                  <span>{parseInt(video.views).toLocaleString()} views</span>
+                  <span>{parseInt(video.likes).toLocaleString()} likes</span>
+                </div>
+              </div>
             </div>
 
             <VideoDetailsForm
-              video={{ ...video, ...formData }} // Pass merged data
+              video={{ ...video, ...formData }}
               onSubmit={handleSubmit}
               onCancel={onClose}
               isLoading={isLoading}
@@ -176,7 +188,7 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
             />
           </div>
 
-          <div>
+          <div className="p-6 overflow-y-auto bg-gray-50">
             {seoAnalysis && <SEOAnalysisPanel analysis={seoAnalysis} />}
           </div>
         </div>

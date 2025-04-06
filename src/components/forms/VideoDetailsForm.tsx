@@ -103,12 +103,12 @@ export const VideoDetailsForm = forwardRef<HTMLFormElement, VideoDetailsFormProp
               type="text"
               value={formState.title}
               onChange={handleChange('title')}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 ${
-                validation.title ? 'focus:ring-blue-500' : 'border-red-500 focus:ring-red-500'
-              }`}
+              className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 ${
+                validation.title ? 'focus:ring-blue-500 border-gray-300' : 'border-red-300 focus:ring-red-500'
+              } transition-colors`}
               disabled={isLoading}
             />
-            <span className="absolute right-2 top-2 text-gray-400 text-sm">
+            <span className="absolute right-3 top-2.5 text-xs font-medium text-gray-400">
               {formState.title.length}/100
             </span>
           </div>
@@ -127,13 +127,13 @@ export const VideoDetailsForm = forwardRef<HTMLFormElement, VideoDetailsFormProp
               name="description"
               value={formState.description}
               onChange={handleChange('description')}
-              rows={5}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 ${
-                validation.description ? 'focus:ring-blue-500' : 'border-red-500 focus:ring-red-500'
-              }`}
+              rows={6}
+              className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 ${
+                validation.description ? 'focus:ring-blue-500 border-gray-300' : 'border-red-300 focus:ring-red-500'
+              } transition-colors resize-none`}
               disabled={isLoading}
             />
-            <span className="absolute right-2 bottom-2 text-gray-400 text-sm">
+            <span className="absolute right-3 bottom-3 text-xs font-medium text-gray-400">
               {formState.description.length} chars
             </span>
           </div>
@@ -153,8 +153,8 @@ export const VideoDetailsForm = forwardRef<HTMLFormElement, VideoDetailsFormProp
             value={formState.newTag}
             onChange={handleChange('newTag')}
             onKeyDown={handleAddTag}
-            placeholder="Press Enter to add tag"
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 mb-2"
+            placeholder="Type a tag and press Enter"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 mb-2 transition-colors"
             disabled={isLoading}
           />
           <TagList 
@@ -165,11 +165,11 @@ export const VideoDetailsForm = forwardRef<HTMLFormElement, VideoDetailsFormProp
           />
         </div>
 
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex justify-end gap-3 pt-4 border-t">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             disabled={isLoading}
           >
             Cancel
@@ -177,7 +177,7 @@ export const VideoDetailsForm = forwardRef<HTMLFormElement, VideoDetailsFormProp
           <button
             type="submit"
             disabled={isLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 transition-colors"
           >
             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
             {isLoading ? 'Saving...' : 'Save Changes'}
