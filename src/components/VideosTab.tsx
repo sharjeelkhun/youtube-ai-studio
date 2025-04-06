@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { useAuthStore } from '../store/authStore';
 import { getChannelVideos } from '../services/youtube';
@@ -17,33 +17,64 @@ export function VideosTab() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSuggestionsModal, setShowSuggestionsModal] = useState(false);
 
-  const { data: videos, isLoading, refetch } = useQuery(
+  const { data: videos, isLoading, refetch, error } = useQuery(
     ['videos', accessToken],
     async () => {
-      const videos = await getChannelVideos(accessToken!);
-      
-      // Analyze SEO for all videos that don't have scores yet
-      if (videos) {
-        const seoStore = useSEOStore.getState();
-        for (const video of videos) {
-          if (!seoStore.getScore(video.id)) {
-            try {
-              const analysis = await analyzeSEO(video.title, video.description, video.tags);
-              seoStore.setScore(video.id, analysis);
-            } catch (error) {
-              console.error('Error analyzing video:', error);
-            }
+      if (!accessToken) return null;
+      try {
+        const videos = await getChannelVideos(accessToken);
+        
+        // Process videos in smaller batches to avoid rate limits
+        if (videos) {
+          const seoStore = useSEOStore.getState();
+          const batchSize = 5;
+          
+          for (let i = 0; i < videos.length; i += batchSize) {
+            const batch = videos.slice(i, Math.min(i + batchSize, videos.length));
+            await Promise.all(
+              batch.map(async (video) => {
+                if (!seoStore.getScore(video.id)) {
+                  try {
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // 1s delay between videos
+                    const analysis = await analyzeSEO(video.title, video.description, video.tags);
+                    seoStore.setScore(video.id, analysis);
+                  } catch (error) {
+                    console.error(`Error analyzing video ${video.id}:`, error);
+                  }
+                }
+              })
+            );
           }
         }
+        
+        return videos;
+      } catch (error) {
+        console.error('Error fetching videos:', error);
+        throw error;
       }
-      
-      return videos;
     },
     {
       enabled: !!accessToken,
       staleTime: 5 * 60 * 1000,
+      cacheTime: 30 * 60 * 1000,
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
+      onError: (error) => {
+        toast.error('Failed to load videos. Retrying...');
+        console.error('Videos fetch error:', error);
+      }
     }
   );
+
+  // Add auto-retry effect
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        refetch();
+      }, 5000); // Retry after 5 seconds on error
+      return () => clearTimeout(timer);
+    }
+  }, [error, refetch]);
 
   if (!isAuthenticated) {
     return (
@@ -58,6 +89,21 @@ export function VideosTab() {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-64px)]">
         <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+      </div>
+    );
+  }
+
+  // Show error state with retry button
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)]">
+        <p className="text-red-500 mb-4">Failed to load videos</p>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+        >
+          Retry
+        </button>
       </div>
     );
   }
