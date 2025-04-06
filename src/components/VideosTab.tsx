@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useQuery } from 'react-query';
 import { useAuthStore } from '../store/authStore';
 import { getChannelVideos } from '../services/youtube';
+import { analyzeSEO } from '../services/ai';
+import { useSEOStore } from '../store/seoStore';
 import { VideoCard } from './VideoCard';
 import { VideoEditModal } from './VideoEditModal';
 import { VideoSuggestionsModal } from './VideoSuggestionsModal';
@@ -17,7 +19,26 @@ export function VideosTab() {
 
   const { data: videos, isLoading, refetch } = useQuery(
     ['videos', accessToken],
-    () => getChannelVideos(accessToken!),
+    async () => {
+      const videos = await getChannelVideos(accessToken!);
+      
+      // Analyze SEO for all videos that don't have scores yet
+      if (videos) {
+        const seoStore = useSEOStore.getState();
+        for (const video of videos) {
+          if (!seoStore.getScore(video.id)) {
+            try {
+              const analysis = await analyzeSEO(video.title, video.description, video.tags);
+              seoStore.setScore(video.id, analysis);
+            } catch (error) {
+              console.error('Error analyzing video:', error);
+            }
+          }
+        }
+      }
+      
+      return videos;
+    },
     {
       enabled: !!accessToken,
       staleTime: 5 * 60 * 1000,

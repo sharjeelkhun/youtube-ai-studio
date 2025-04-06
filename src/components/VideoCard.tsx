@@ -23,48 +23,45 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const queryClient = useQueryClient();
   const storedScore = useSEOStore((state) => state.getScore(video.id));
 
-  const queryKey = ['seo-score', video.id, video.title, video.description, video.tags.join(',')];
-
   const { data: seoScore, isLoading } = useQuery(
-    queryKey,
+    ['seo-score', video.id],
     async () => {
       if (!cohereKey) return null;
-      try {
-        // Use stored score if available
-        if (storedScore) {
-          return Math.round(storedScore.score * 100);
-        }
+      
+      // Validate stored score
+      if (storedScore && typeof storedScore.score === 'number') {
+        const score = Math.round(storedScore.score * 100);
+        return score >= 0 && score <= 100 ? score : null;
+      }
 
+      try {
         const rawResponse = await throttledAnalyzeSEO(video.title, video.description, video.tags);
         const parsedResponse = typeof rawResponse === 'string' ? 
           parseSEOAnalysis(rawResponse) : rawResponse;
 
-        // Store the score
-        if (parsedResponse) {
+        if (parsedResponse && typeof parsedResponse.score === 'number') {
           useSEOStore.getState().setScore(video.id, parsedResponse);
+          const score = Math.round(parsedResponse.score * 100);
+          return score >= 0 && score <= 100 ? score : null;
         }
-
-        return typeof parsedResponse?.score === 'number' ? Math.round(parsedResponse.score * 100) : null;
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error calculating SEO score:', error);
-        return storedScore ? Math.round(storedScore.score * 100) : null;
       }
+      return null;
     },
     {
       enabled: !!cohereKey,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      cacheTime: 30 * 60 * 1000, // 30 minutes
-      retry: 1,
-      refetchOnWindowFocus: false,
-      refetchOnMount: true,
-      initialData: storedScore ? Math.round(storedScore.score * 100) : null,
+      staleTime: Infinity, // Keep the score forever
+      cacheTime: Infinity, // Never delete from cache
+      initialData: storedScore && typeof storedScore.score === 'number' ? 
+        Math.round(storedScore.score * 100) : undefined,
     }
   );
 
   React.useEffect(() => {
     // Prefetch the next queries
     if (cohereKey) {
-      queryClient.prefetchQuery(queryKey);
+      queryClient.prefetchQuery(['seo-score', video.id]);
     }
   }, [cohereKey, video.id]);
 
@@ -80,24 +77,19 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
           alt={video.title}
           className="w-full aspect-video object-cover"
         />
-        {!isLoading && seoScore !== null && typeof seoScore === 'number' ? (
-          <div className="absolute top-2 right-2">
-            <SEOScoreIndicator score={seoScore} size="sm" />
-          </div>
-        ) : isLoading ? (
-          <div className="absolute top-2 right-2 bg-gray-100 rounded-lg px-3 py-1 text-sm text-gray-600">
-            Analyzing...
-          </div>
-        ) : (
-          <div className="absolute top-2 right-2 bg-gray-100 rounded-lg px-3 py-1 text-sm text-gray-600">
-            No SEO Score
-          </div>
-        )}
-        {!isLoading && !cohereKey && (
+        {!cohereKey ? (
           <div className="absolute top-2 right-2 bg-gray-100 rounded-lg px-3 py-1 text-sm text-gray-600">
             Configure AI in Settings
           </div>
-        )}
+        ) : isLoading ? (
+          <div className="absolute top-2 right-2">
+            <SEOScoreIndicator score={null} size="sm" />
+          </div>
+        ) : seoScore ? (
+          <div className="absolute top-2 right-2">
+            <SEOScoreIndicator score={seoScore} size="sm" />
+          </div>
+        ) : null}
       </div>
 
       <div className="p-4">
