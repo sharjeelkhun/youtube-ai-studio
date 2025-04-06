@@ -11,9 +11,16 @@ import { useSEOStore } from '../store/seoStore';
 import { useQuery, useQueryClient } from 'react-query';
 import toast from 'react-hot-toast';
 
-// Add batch size and delay constants
-const BATCH_SIZE = 3;
-const DELAY_BETWEEN_BATCHES = 5000;
+// Constants for score calculation
+const BATCH_SIZE = 5;
+const DELAY_BETWEEN_BATCHES = 3000;
+const BASE_SCORES = {
+  TITLE_WEIGHT: 0.4,
+  DESC_WEIGHT: 0.4,
+  TAGS_WEIGHT: 0.2,
+  MIN_SCORE: 65, // Minimum base score
+  MAX_SCORE: 95  // Maximum base score
+};
 
 interface VideoCardProps {
   video: VideoData;
@@ -29,6 +36,29 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const retryCountRef = React.useRef(0);
   const batchIndex = React.useRef(Math.floor(Math.random() * BATCH_SIZE));
 
+  const calculateVideoScore = (data: any): number => {
+    if (!data) return BASE_SCORES.MIN_SCORE;
+
+    // Calculate weighted score based on content
+    let score = BASE_SCORES.MIN_SCORE;
+
+    // Title factors
+    if (video.title.length >= 40 && video.title.length <= 70) score += 10;
+    if (/^[A-Z]/.test(video.title)) score += 5; // Starts with capital
+    if (video.title.includes('|') || video.title.includes('-') || video.title.includes(':')) score += 5;
+
+    // Description factors
+    if (video.description.length >= 100) score += 10;
+    if (video.description.includes('\n')) score += 5; // Has formatting
+
+    // Tags factors
+    if (video.tags.length >= 5) score += 5;
+    if (video.tags.length >= 10) score += 5;
+
+    // Normalize score
+    return Math.min(Math.max(Math.round(score), BASE_SCORES.MIN_SCORE), BASE_SCORES.MAX_SCORE);
+  };
+
   const { data: seoScore, isLoading } = useQuery(
     ['seo-score', video.id],
     async () => {
@@ -36,14 +66,11 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       
       // Return stored score if valid
       if (storedScore && typeof storedScore.score === 'number') {
-        const score = Math.round(storedScore.score * 100);
-        if (score >= 0 && score <= 100) {
-          return score;
-        }
+        return calculateVideoScore(storedScore);
       }
 
       try {
-        // Stagger requests in batches
+        // Add delay between batches
         const batchDelay = (batchIndex.current * DELAY_BETWEEN_BATCHES) / BATCH_SIZE;
         await new Promise(resolve => setTimeout(resolve, batchDelay));
 
@@ -51,50 +78,30 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
         const parsedResponse = typeof rawResponse === 'string' ? 
           parseSEOAnalysis(rawResponse) : rawResponse;
 
-        if (parsedResponse && typeof parsedResponse.score === 'number') {
-          // Ensure score is within valid range
-          const baseScore = Math.min(Math.max(parsedResponse.score, 0), 1);
-          // Add small random variation
-          const variation = (Math.random() * 0.1) - 0.05; // ±5%
-          const finalScore = Math.round((baseScore + variation) * 100);
-          
-          const analysisWithNormalizedScore = {
+        if (parsedResponse) {
+          const score = calculateVideoScore(parsedResponse);
+          const analysisWithScore = {
             ...parsedResponse,
-            score: finalScore / 100
+            score: score / 100
           };
           
-          useSEOStore.getState().setScore(video.id, analysisWithNormalizedScore);
-          return finalScore;
+          useSEOStore.getState().setScore(video.id, analysisWithScore);
+          return score;
         }
       } catch (error: any) {
         console.error('Error calculating SEO score:', error);
-        if (error.message?.includes('Rate limit')) {
-          // Handle rate limit with local ref counter
-          const backoffTime = Math.min(1000 * Math.pow(2, retryCountRef.current), 30000);
-          retryCountRef.current += 1;
-          await new Promise(resolve => setTimeout(resolve, backoffTime));
-          
-          // Reset retry count after max retries
-          if (retryCountRef.current >= 3) {
-            retryCountRef.current = 0;
-            throw new Error('Max retries exceeded');
-          }
-        }
+        // Return default score on error
+        return BASE_SCORES.MIN_SCORE;
       }
-      return null;
+      return BASE_SCORES.MIN_SCORE;
     },
     {
       enabled: !!cohereKey,
-      staleTime: 24 * 60 * 60 * 1000, // 24 hours
+      staleTime: 24 * 60 * 60 * 1000,
       cacheTime: Infinity,
-      retry: 2,
-      retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
-      initialData: storedScore && typeof storedScore.score === 'number' ? 
-        Math.min(Math.max(Math.round(storedScore.score * 100), 0), 100) : undefined,
-      onError: () => {
-        // Reset retry count on error
-        retryCountRef.current = 0;
-      },
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 15000),
+      initialData: storedScore ? calculateVideoScore(storedScore) : undefined
     }
   );
 
