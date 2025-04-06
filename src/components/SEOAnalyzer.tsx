@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Layout, Sparkles, Tags } from 'lucide-react';
 import { analyzeSEO } from '../services/ai';
-import { aiService } from '../services/ai/service'; // Import aiService from correct path
+import { aiService } from '../services/ai/service';
+import { SEOAnalysisPanel } from './video/SEOAnalysisPanel';
 import toast from 'react-hot-toast';
 
 export function SEOAnalyzer() {
@@ -46,69 +47,82 @@ export function SEOAnalyzer() {
   };
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold mb-4">SEO Analyzer</h2>
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">SEO Analyzer</h2>
 
-      <div className="mb-4">
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-          Video Title
-        </label>
-        <input
-          id="title"
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          placeholder="Enter video title"
-        />
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+              Video Title
+            </label>
+            <div className="relative">
+              <input
+                id="title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="Enter video title"
+              />
+              <Layout className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+              Video Description
+            </label>
+            <div className="relative">
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="Enter video description"
+                rows={4}
+              />
+              <Sparkles className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
+              Tags (comma-separated)
+            </label>
+            <div className="relative">
+              <input
+                id="tags"
+                type="text"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="Enter tags separated by commas"
+              />
+              <Tags className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
+            </div>
+          </div>
+
+          <button
+            onClick={handleAnalyze}
+            disabled={isLoading}
+            className="w-full flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                Analyzing...
+              </>
+            ) : (
+              'Analyze SEO'
+            )}
+          </button>
+        </div>
       </div>
-
-      <div className="mb-4">
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-          Video Description
-        </label>
-        <textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          placeholder="Enter video description"
-          rows={4}
-        />
-      </div>
-
-      <div className="mb-4">
-        <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
-          Tags (comma-separated)
-        </label>
-        <input
-          id="tags"
-          type="text"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          placeholder="Enter tags separated by commas"
-        />
-      </div>
-
-      <button
-        onClick={handleAnalyze}
-        disabled={isLoading}
-        className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition disabled:opacity-50"
-      >
-        {isLoading ? (
-          <Loader2 className="w-5 h-5 animate-spin mr-2" />
-        ) : (
-          'Analyze SEO'
-        )}
-      </button>
 
       {analysis && (
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-2">SEO Analysis Results</h3>
-          <pre className="bg-gray-100 p-4 rounded-lg text-sm overflow-auto">
-            {JSON.stringify(analysis, null, 2)}
-          </pre>
+        <div className="bg-white rounded-lg shadow-sm">
+          <SEOAnalysisPanel analysis={analysis} />
         </div>
       )}
     </div>
