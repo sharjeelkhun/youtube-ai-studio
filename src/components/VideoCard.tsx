@@ -7,6 +7,7 @@ import { SEOScoreIndicator } from './video/SEOScoreIndicator';
 import { throttledAnalyzeSEO } from '../services/ai';
 import { parseSEOAnalysis } from '../services/seoAnalysis';
 import { useAPIKeyStore } from '../store/apiKeyStore';
+import { useSEOStore } from '../store/seoStore';
 import { useQuery, useQueryClient } from 'react-query';
 import toast from 'react-hot-toast';
 
@@ -20,6 +21,7 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const { getKey } = useAPIKeyStore();
   const cohereKey = getKey('cohere');
   const queryClient = useQueryClient();
+  const storedScore = useSEOStore((state) => state.getScore(video.id));
 
   const queryKey = ['seo-score', video.id, video.title, video.description, video.tags.join(',')];
 
@@ -28,16 +30,24 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
     async () => {
       if (!cohereKey) return null;
       try {
+        // Use stored score if available
+        if (storedScore) {
+          return Math.round(storedScore.score * 100);
+        }
+
         const rawResponse = await throttledAnalyzeSEO(video.title, video.description, video.tags);
         const parsedResponse = typeof rawResponse === 'string' ? 
           parseSEOAnalysis(rawResponse) : rawResponse;
 
-        // Convert decimal scores to percentages and round to nearest integer
-        const score = parsedResponse?.score;
-        return typeof score === 'number' ? Math.round(score * 100) : null;
+        // Store the score
+        if (parsedResponse) {
+          useSEOStore.getState().setScore(video.id, parsedResponse);
+        }
+
+        return typeof parsedResponse?.score === 'number' ? Math.round(parsedResponse.score * 100) : null;
       } catch (error: any) {
         console.error('Error calculating SEO score:', error);
-        return null;
+        return storedScore ? Math.round(storedScore.score * 100) : null;
       }
     },
     {
@@ -46,7 +56,8 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       cacheTime: 30 * 60 * 1000, // 30 minutes
       retry: 1,
       refetchOnWindowFocus: false,
-      refetchOnMount: true
+      refetchOnMount: true,
+      initialData: storedScore ? Math.round(storedScore.score * 100) : null,
     }
   );
 

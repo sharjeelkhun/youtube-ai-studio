@@ -10,6 +10,7 @@ import { SEOAnalysisPanel } from './video/SEOAnalysisPanel';
 import toast from 'react-hot-toast';
 import { refreshSession } from '../services/auth';
 import { format } from 'date-fns';
+import { useSEOStore } from '../store/seoStore';
 
 interface VideoEditModalProps {
   video: VideoData;
@@ -45,12 +46,14 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
       try {
         const analysis = await analyzeSEO(formData.title, formData.description, formData.tags);
         setSeoAnalysis(analysis);
+        // Store the new score
+        useSEOStore.getState().setScore(video.id, analysis);
       } catch (error) {
         console.error('Error analyzing SEO:', error);
       }
     };
     analyzeSEOScore();
-  }, [formData]);
+  }, [formData, video.id]);
 
   if (!isOpen) return null;
 
