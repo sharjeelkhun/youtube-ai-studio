@@ -8,15 +8,15 @@ interface SEOScoreIndicatorProps {
 
 export function SEOScoreIndicator({ score, size }: SEOScoreIndicatorProps) {
   const sizeClasses = {
-    sm: 'w-8 h-8 text-xs font-medium',
-    md: 'w-10 h-10 text-sm font-medium',
-    lg: 'w-12 h-12 text-base font-medium',
+    sm: 'w-10 h-10 text-xs font-bold',
+    md: 'w-12 h-12 text-sm font-bold',
+    lg: 'w-16 h-16 text-lg font-bold',
   };
 
   if (score === null || score === undefined) {
     return (
-      <div className={`flex items-center justify-center rounded-full bg-gray-300 text-white ${sizeClasses[size]}`}>
-        <AlertCircle className="w-4 h-4" />
+      <div className={`flex items-center justify-center rounded-full bg-gray-200 text-gray-500 ${sizeClasses[size]} shadow-sm`}>
+        <AlertCircle className="w-5 h-5" />
       </div>
     );
   }
@@ -28,7 +28,7 @@ export function SEOScoreIndicator({ score, size }: SEOScoreIndicatorProps) {
 
   return (
     <div
-      className={`flex items-center justify-center rounded-full ${getScoreColor(score)} text-white ${sizeClasses[size]} shadow-sm`}
+      className={`flex items-center justify-center rounded-full ${getScoreColor(score)} text-white ${sizeClasses[size]} shadow-md transition-all duration-300 hover:scale-105`}
     >
       {score}%
     </div>
@@ -36,7 +36,7 @@ export function SEOScoreIndicator({ score, size }: SEOScoreIndicatorProps) {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 80) return 'bg-green-600';
-  if (score >= 60) return 'bg-yellow-500';
-  return 'bg-red-500';
+  if (score >= 80) return 'bg-gradient-to-br from-green-500 to-green-600';
+  if (score >= 60) return 'bg-gradient-to-br from-yellow-500 to-yellow-600';
+  return 'bg-gradient-to-br from-red-500 to-red-600';
 }
