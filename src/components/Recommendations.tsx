@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lightbulb, TrendingUp, TrendingDown, Target } from 'lucide-react';
+import { Lightbulb, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function Recommendations({ analytics }: { analytics: any }) {
@@ -49,29 +49,20 @@ export function Recommendations({ analytics }: { analytics: any }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Lightbulb className="w-5 h-5 text-yellow-500" />
-        <h2 className="text-lg font-semibold text-gray-900">Smart Recommendations</h2>
-      </div>
-      <div className="space-y-3">
-        {recommendations.map((rec, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-100 hover:shadow-md transition-shadow duration-200"
-          >
-            <p className="text-gray-800">{rec}</p>
-          </motion.div>
-        ))}
-        {recommendations.length === 0 && (
-          <div className="text-center p-6 bg-gray-50 rounded-lg">
-            <Target className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-500">Start creating content to see personalized recommendations!</p>
-          </div>
-        )}
-      </div>
+      {recommendations.map((rec, index) => (
+        <div
+          key={index}
+          className="p-4 bg-gray-50 rounded-lg border text-sm text-gray-700"
+        >
+          <p>{rec}</p>
+        </div>
+      ))}
+      {recommendations.length === 0 && (
+        <div className="text-center p-6 bg-gray-50 rounded-lg">
+          <Target className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-gray-500">Start creating content to see personalized recommendations</p>
+        </div>
+      )}
     </div>
   );
 }

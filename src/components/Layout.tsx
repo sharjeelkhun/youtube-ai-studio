@@ -59,7 +59,7 @@ export function Layout() {
           currentPath={location.pathname}
         />
 
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main className="flex-1 overflow-auto bg-gray-50">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/videos" element={
