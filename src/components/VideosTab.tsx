@@ -10,11 +10,10 @@ import { VideoData } from '../types/youtube';
 import { Loader2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { refreshSession } from '../services/auth';
-import { useVideoContext } from '../contexts/VideoContext';
 
 export function VideosTab() {
   const { accessToken, isAuthenticated } = useAuthStore();
-  const { searchQuery, setSearchQuery, filteredVideos, setAllVideos } = useVideoContext();
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<VideoData | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSuggestionsModal, setShowSuggestionsModal] = useState(false);
@@ -28,14 +27,13 @@ export function VideosTab() {
     }
   }, [isAuthenticated]);
 
-  const { isLoading, refetch, error } = useQuery(
+  const { data: videos, isLoading, refetch, error } = useQuery(
     ['videos', accessToken],
     async () => {
       if (!refreshSession()) return null;
       if (!accessToken) return null;
       try {
         const videos = await getChannelVideos(accessToken);
-        setAllVideos(videos || []);
         return videos;
       } catch (error: any) {
         console.error('Error fetching videos:', error);
@@ -47,13 +45,16 @@ export function VideosTab() {
       staleTime: Infinity, // Never consider data stale automatically
       cacheTime: Infinity, // Keep data cached indefinitely
       refetchOnWindowFocus: false,
-      refetchOnMount: false,
+      refetchOnMount: true,
       refetchOnReconnect: false,
-      refetchInterval: false, // Disable periodic refetching
       retry: 1,
-      suspense: false,
     }
   );
+
+  const filteredVideos =
+    videos?.filter((video) =>
+      video.title.toLowerCase().includes(searchQuery.toLowerCase())
+    ) || [];
 
   if (!isAuthenticated) {
     return (
@@ -129,8 +130,9 @@ export function VideosTab() {
           video={selectedVideo}
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
-          onUpdate={async () => {
-            await refetch(); // Wait for refetch to complete
+          onUpdate={() => {
+            refetch();
+            // Keep modal open after update
           }}
         />
       )}
