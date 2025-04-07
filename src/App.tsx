@@ -1,25 +1,12 @@
 import React, { useEffect } from 'react';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/authStore';
 import { handleAuthCallback, refreshSession, checkStoredSession } from './services/auth';
 import { VideoProvider } from './contexts/VideoContext';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-      refetchInterval: false,
-      staleTime: Infinity,
-      cacheTime: Infinity,
-    },
-  },
-});
+import { queryClient } from './services/queryClient';
 
 const router = createBrowserRouter([
   {
