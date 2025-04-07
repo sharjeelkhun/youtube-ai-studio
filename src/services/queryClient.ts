@@ -1,16 +1,16 @@
 import { QueryClient } from 'react-query';
 
-// Improve caching and refresh behavior
+// Single source of truth for query configuration
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
-      refetchOnMount: "always", // Only fetch on first mount
+      refetchOnMount: false,
       refetchOnReconnect: false,
       refetchInterval: false,
-      staleTime: 24 * 60 * 60 * 1000, // Consider data fresh for 24 hours
-      cacheTime: 24 * 60 * 60 * 1000, // Keep in cache for 24 hours
+      staleTime: 30 * 60 * 1000, // 30 minutes
+      cacheTime: 60 * 60 * 1000, // 1 hour
     },
   },
 });

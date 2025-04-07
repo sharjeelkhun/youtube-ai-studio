@@ -4,7 +4,7 @@ import { analyzeSEO } from '../services/ai';
 import { aiService } from '../services/ai/service';
 import { SEOAnalysisPanel } from './video/SEOAnalysisPanel';
 import toast from 'react-hot-toast';
-import { queryClient } from '../lib/queryClient';
+import { queryClient } from '../services/queryClient';
 
 export function SEOAnalyzer() {
   const [title, setTitle] = useState('');

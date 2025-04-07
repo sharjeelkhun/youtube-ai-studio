@@ -12,19 +12,19 @@ import { TopVideosChart } from './TopVideosChart';
 
 export function Dashboard() {
   const { accessToken, isAuthenticated } = useAuthStore();
-  const [timeRange, setTimeRange] = useState('6m'); // Default to 6 months
+  const [timeRange, setTimeRange] = useState('6m');
 
   const { data: videos, isLoading: isLoadingVideos, error: videosError } = useQuery(
     ['videos', accessToken],
     () => getChannelVideos(accessToken!),
     {
       enabled: !!accessToken,
-      staleTime: 30 * 60 * 1000, // Consider fresh for 30 minutes
-      cacheTime: 60 * 60 * 1000, // Keep in cache for 1 hour
+      staleTime: 30 * 60 * 1000,
+      cacheTime: 60 * 60 * 1000,
       refetchOnMount: false,
       refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-    } 
+      refetchOnReconnect: false
+    }
   );
 
   const { data: analytics, isLoading: isLoadingAnalytics, error: analyticsError } = useQuery(

@@ -29,14 +29,15 @@ function App() {
       window.location.hash = '';
     }
 
-    // Reduced frequency of session checks to prevent unnecessary refreshes
+    // Check session less frequently and only invalidate when needed
     const checkSession = setInterval(() => {
       const wasRefreshed = refreshSession();
       if (!wasRefreshed) {
-        // Only invalidate queries if session actually expired
-        queryClient.invalidateQueries();
+        // Only invalidate auth-dependent queries if session expired
+        queryClient.invalidateQueries('videos');
+        queryClient.invalidateQueries('analytics');
       }
-    }, 5 * 60 * 1000); // Check every 5 minutes instead of every minute
+    }, 5 * 60 * 1000); // Check every 5 minutes
 
     return () => clearInterval(checkSession);
   }, [setAuth]);
