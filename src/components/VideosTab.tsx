@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { useAuthStore } from '../store/authStore';
 import { getChannelVideos } from '../services/youtube';
-import { analyzeSEO } from '../services/ai';
 import { useSEOStore } from '../store/seoStore';
 import { VideoCard } from './VideoCard';
 import { VideoEditModal } from './VideoEditModal';
@@ -19,7 +18,6 @@ export function VideosTab() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSuggestionsModal, setShowSuggestionsModal] = useState(false);
 
-  // Add auth check effect
   useEffect(() => {
     if (!isAuthenticated) {
       const wasRestored = refreshSession();
@@ -37,27 +35,15 @@ export function VideosTab() {
       try {
         const videos = await getChannelVideos(accessToken);
         
-        // Process videos in smaller batches to avoid rate limits
+        // Process videos in batches but don't auto-analyze SEO
         if (videos) {
           const seoStore = useSEOStore.getState();
-          const batchSize = 5;
-          
-          for (let i = 0; i < videos.length; i += batchSize) {
-            const batch = videos.slice(i, Math.min(i + batchSize, videos.length));
-            await Promise.all(
-              batch.map(async (video) => {
-                if (!seoStore.getScore(video.id)) {
-                  try {
-                    await new Promise(resolve => setTimeout(resolve, 1000)); // 1s delay between videos
-                    const analysis = await analyzeSEO(video.title, video.description, video.tags);
-                    seoStore.setScore(video.id, analysis);
-                  } catch (error) {
-                    console.error(`Error analyzing video ${video.id}:`, error);
-                  }
-                }
-              })
-            );
-          }
+          // Only analyze videos that don't have scores yet, but don't do it automatically
+          videos.forEach(video => {
+            if (!seoStore.getScore(video.id)) {
+              console.log('Video needs SEO analysis:', video.id);
+            }
+          });
         }
         
         return videos;
@@ -68,33 +54,23 @@ export function VideosTab() {
     },
     {
       enabled: !!accessToken,
-      staleTime: Infinity, // Prevent automatic refetching
-      cacheTime: 24 * 60 * 60 * 1000, // Cache for 24 hours
-      refetchOnWindowFocus: false, // Disable refetch on window focus
-      refetchOnMount: false, // Disable refetch on mount
-      retry: 3,
-      retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
+      staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+      cacheTime: 30 * 60 * 1000, // Cache for 30 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      retry: 1, // Only retry once on failure
+      retryDelay: 1000, // Wait 1 second before retry
       onError: (error: any) => {
         const message = error?.message || 'Failed to load videos';
         if (message.includes('401') || message.toLowerCase().includes('unauthorized')) {
           refreshSession();
         } else {
-          toast.error(`${message}. Retrying...`);
+          toast.error(message);
         }
         console.error('Videos fetch error:', error);
       }
     }
   );
-
-  // Add auto-retry effect
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => {
-        refetch();
-      }, 5000); // Retry after 5 seconds on error
-      return () => clearTimeout(timer);
-    }
-  }, [error, refetch]);
 
   if (!isAuthenticated) {
     return (
@@ -113,7 +89,6 @@ export function VideosTab() {
     );
   }
 
-  // Show error state with retry button
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)]">
