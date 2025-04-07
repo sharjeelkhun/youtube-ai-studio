@@ -3,7 +3,8 @@ import { useAuthStore } from '../store/authStore';
 import { getChannelVideos } from '../services/youtube';
 import { getChannelAnalytics } from '../services/analytics';
 import { useQuery } from 'react-query';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronDown, Calendar } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { StatsCard } from './StatsCard';
 import { PerformanceChart } from './PerformanceChart';
 import { Recommendations } from './Recommendations';
@@ -33,17 +34,24 @@ export function Dashboard() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] bg-gray-50">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Welcome to YouTube AI Studio</h1>
-        <p className="text-gray-600 mb-8">Sign in with your YouTube account to get started</p>
-      </div>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col items-center justify-center h-[calc(100vh-64px)] bg-gradient-to-br from-gray-50 to-white"
+      >
+        <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 mb-4">
+          Welcome to YouTube AI Studio
+        </h1>
+        <p className="text-gray-600 text-lg mb-8">Sign in with your YouTube account to get started</p>
+      </motion.div>
     );
   }
 
   if (isLoadingVideos || isLoadingAnalytics) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] bg-gradient-to-br from-gray-50 to-white">
+        <Loader2 className="w-12 h-12 animate-spin text-red-600 mb-4" />
+        <p className="text-gray-600 animate-pulse">Loading your dashboard...</p>
       </div>
     );
   }
@@ -62,128 +70,130 @@ export function Dashboard() {
   const totalSubscribers = analytics?.totalSubscribers ?? 0;
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-6 max-w-7xl mx-auto px-4 py-8"
+    >
       {/* Time Range Filter */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Analytics Overview</h2>
-        <select
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value)}
-          className="border border-gray-300 rounded-md p-2"
-        >
-          <option value="lifetime">Lifetime</option>
-          <option value="1y">Last 1 Year</option>
-          <option value="6m">Last 6 Months</option>
-          <option value="3m">Last 3 Months</option>
-          <option value="1m">Last 1 Month</option>
-          <option value="1w">Last Week</option>
-        </select>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
+            Analytics Overview
+          </h2>
+          <p className="text-gray-500 mt-1">Track your channel's performance</p>
+        </div>
+        <div className="relative">
+          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border border-gray-200 hover:border-gray-300 transition-colors">
+            <Calendar className="w-4 h-4 text-gray-500" />
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value)}
+              className="appearance-none bg-transparent pr-8 focus:outline-none text-gray-700"
+            >
+              <option value="lifetime">Lifetime</option>
+              <option value="1y">Last 1 Year</option>
+              <option value="6m">Last 6 Months</option>
+              <option value="3m">Last 3 Months</option>
+              <option value="1m">Last 1 Month</option>
+              <option value="1w">Last Week</option>
+            </select>
+            <ChevronDown className="w-4 h-4 text-gray-500 absolute right-3" />
+          </div>
+        </div>
       </div>
 
       {/* Summary Section */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatsCard
-          title="Total Subscribers"
-          value={totalSubscribers.toLocaleString()}
-          trend="up" // Use "up" as the default trend for cumulative metrics
-        />
-        <StatsCard
-          title="Total Views"
-          value={(analytics?.totalViews ?? 0).toLocaleString()}
-          trend="up" // Use "up" as the default trend for cumulative metrics
-        />
-        <StatsCard
-          title="Total Likes"
-          value={(analytics?.totalLikes ?? 0).toLocaleString()}
-          trend="up" // Use "up" as the default trend for cumulative metrics
-        />
-        <StatsCard
-          title="Engagement Rate"
-          value={`${(analytics?.engagementRate ?? 0).toFixed(2)}%`}
-          trend="up" // Use "up" as the default trend for cumulative metrics
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Summary Cards with animation */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <StatsCard
+            title="Total Subscribers"
+            value={totalSubscribers.toLocaleString()}
+            trend="up"
+          />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <StatsCard
+            title="Total Views"
+            value={(analytics?.totalViews ?? 0).toLocaleString()}
+            trend="up"
+          />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <StatsCard
+            title="Total Likes"
+            value={(analytics?.totalLikes ?? 0).toLocaleString()}
+            trend="up"
+          />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          <StatsCard
+            title="Engagement Rate"
+            value={`${(analytics?.engagementRate ?? 0).toFixed(2)}%`}
+            trend="up"
+          />
+        </motion.div>
       </div>
 
       {/* Fallback Message */}
       {!hasData && (
-        <div className="text-center text-gray-500">
-          <p>No uploads found for the selected time range. Please try a different range.</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center bg-gray-50 rounded-lg p-8"
+        >
+          <p className="text-gray-500 text-lg">No data available for the selected time range</p>
+        </motion.div>
       )}
 
       {/* Analytics Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-          title="Views Growth"
-          value={
-            hasData
-              ? analytics.viewsGrowth >= 0
-                ? `Up ${analytics.viewsGrowth.toFixed(2)}%`
-                : `Down ${Math.abs(Number(analytics.viewsGrowth.toFixed(2)))}%`
-              : 'No data'
-          }
-          trend={hasData ? (analytics.viewsGrowth >= 0 ? 'up' : 'down') : 'up'}
-        />
-        <StatsCard
-          title="Subscriber Growth"
-          value={
-            hasData
-              ? (analytics.subscriberGrowth ?? 0) >= 0
-                ? `Up ${(analytics.subscriberGrowth ?? 0).toFixed(2)}%`
-                : `Down ${Math.abs(Number((analytics.subscriberGrowth ?? 0).toFixed(2)))}%`
-              : 'No data'
-          }
-          trend={hasData ? ((analytics.subscriberGrowth ?? 0) >= 0 ? 'up' : 'down') : 'up'}
-        />
-        <StatsCard
-          title="Likes Growth"
-          value={
-            hasData
-              ? analytics.likesGrowth >= 0
-                ? `Up ${analytics.likesGrowth.toFixed(2)}%`
-                : `Down ${Math.abs(Number(analytics.likesGrowth.toFixed(2)))}%`
-              : 'No data'
-          }
-          trend={hasData ? (analytics.likesGrowth >= 0 ? 'up' : 'down') : 'up'}
-        />
-        <StatsCard
-          title="Video Growth"
-          value={
-            hasData
-              ? analytics.videoGrowth >= 0
-                ? `Up ${analytics.videoGrowth.toFixed(2)}%`
-                : `Down ${Math.abs(Number(analytics.videoGrowth.toFixed(2)))}%`
-              : 'No data'
-          }
-          trend={hasData ? (analytics.videoGrowth >= 0 ? 'up' : 'down') : 'up'}
-        />
-      </div>
-
-      {/* Top Videos Chart */}
       {hasData ? (
-        <TopVideosChart
-          videos={analytics.analyticsData.slice(0, 5).map((video) => ({
-            title: video.title,
-            views: parseInt(video.views || '0'),
-          }))}
-        />
-      ) : (
-        <div className="text-center text-gray-500">
-          <p>No top videos to display.</p>
-        </div>
-      )}
+        <div className="grid gap-6 md:grid-cols-2">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
+          >
+            <TopVideosChart
+              videos={analytics.analyticsData.slice(0, 5).map((video) => ({
+                title: video.title,
+                views: parseInt(video.views || '0'),
+              }))}
+            />
+          </motion.div>
 
-      {/* Recommendations */}
-      <Recommendations analytics={analytics || {}} />
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
+          >
+            <Recommendations analytics={analytics || {}} />
+          </motion.div>
+        </div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center bg-gray-50 rounded-lg p-8"
+        >
+          <p className="text-gray-500 text-lg">No data available for the selected time range</p>
+        </motion.div>
+      )}
 
       {/* Performance Chart */}
-      {hasData ? (
-        <PerformanceChart data={analytics.analyticsData} />
-      ) : (
-        <div className="text-center text-gray-500">
-          <p>No performance data to display.</p>
-        </div>
+      {hasData && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
+        >
+          <PerformanceChart data={analytics.analyticsData} />
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
