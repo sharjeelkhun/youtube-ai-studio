@@ -15,7 +15,7 @@ export function SEOScoreIndicator({ score, size }: SEOScoreIndicatorProps) {
 
   if (score === null || score === undefined) {
     return (
-      <div className={`flex items-center justify-center rounded-full bg-gray-200 text-gray-500 ${sizeClasses[size]} shadow-sm`}>
+      <div className={`flex items-center justify-center rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-gray-400 ${sizeClasses[size]} shadow-sm`}>
         <AlertCircle className="w-5 h-5" />
       </div>
     );
@@ -28,7 +28,7 @@ export function SEOScoreIndicator({ score, size }: SEOScoreIndicatorProps) {
 
   return (
     <div
-      className={`flex items-center justify-center rounded-full ${getScoreColor(score)} text-white ${sizeClasses[size]} shadow-md transition-all duration-300 hover:scale-105`}
+      className={`flex items-center justify-center rounded-full ${getScoreColor(score)} backdrop-blur-md ${sizeClasses[size]} shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl border border-white/20`}
     >
       {score}%
     </div>
@@ -36,7 +36,7 @@ export function SEOScoreIndicator({ score, size }: SEOScoreIndicatorProps) {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 80) return 'bg-gradient-to-br from-green-500 to-green-600';
-  if (score >= 60) return 'bg-gradient-to-br from-yellow-500 to-yellow-600';
-  return 'bg-gradient-to-br from-red-500 to-red-600';
+  if (score >= 80) return 'bg-green-500/30 text-green-50';
+  if (score >= 60) return 'bg-yellow-500/30 text-yellow-50';
+  return 'bg-red-500/30 text-red-50';
 }

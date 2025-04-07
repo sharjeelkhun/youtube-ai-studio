@@ -172,8 +172,10 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
     try {
       const analysis = await analyzeSEO(video.title, video.description, video.tags);
       if (analysis) {
-        useSEOStore.getState().setScore(video.id, analysis);
+        await useSEOStore.getState().setScore(video.id, analysis);
+        // Force immediate query refetch
         await queryClient.invalidateQueries(['seo-score', video.id]);
+        await queryClient.refetchQueries(['seo-score', video.id]);
         toast.success('SEO Analysis completed!');
       }
     } catch (error: any) {
@@ -194,25 +196,42 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
           className="w-full aspect-video object-cover"
         />
         {!cohereKey ? (
-          <div className="absolute top-2 right-2 bg-gray-100 rounded-lg px-3 py-1 text-sm text-gray-600">
+          <div className="absolute top-2 right-2 bg-black/20 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-1 text-sm text-white">
             Configure AI in Settings
           </div>
         ) : isLoading ? (
           <div className="absolute top-2 right-2">
-            <SEOScoreIndicator score={null} size="sm" />
+            <div className="animate-pulse">
+              <SEOScoreIndicator score={null} size="sm" />
+            </div>
           </div>
         ) : seoScore ? (
-          <div className="absolute top-2 right-2">
-            <SEOScoreIndicator score={seoScore} size="sm" />
-          </div>
+          <motion.div 
+            initial={{ opacity: 0.6, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ scale: 1.1 }}
+            className="absolute top-2 right-2 group"
+          >
+            <div className="relative">
+              <SEOScoreIndicator score={seoScore} size="sm" />
+              <button
+                onClick={handleAnalyzeSEO}
+                className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm opacity-0 group-hover:opacity-100 rounded-full transition-all duration-200"
+              >
+                <Sparkles className="w-4 h-4 text-white" />
+              </button>
+            </div>
+          </motion.div>
         ) : (
-          <button
+          <motion.button
             onClick={handleAnalyzeSEO}
-            className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="absolute top-2 right-2 bg-black/30 backdrop-blur-sm border border-white/20 hover:bg-black/40 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1.5 shadow-lg hover:shadow-xl"
           >
             <Sparkles className="w-3.5 h-3.5" />
             Analyze SEO
-          </button>
+          </motion.button>
         )}
       </div>
 
