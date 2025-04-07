@@ -6,6 +6,9 @@ const YOUTUBE_SCOPES = [
   'https://www.googleapis.com/auth/youtube.force-ssl'
 ].join(' ');
 
+const TOKEN_STORAGE_KEY = 'youtube_auth_token';
+const EXPIRY_STORAGE_KEY = 'youtube_token_expiry';
+
 export function initiateAuth() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   if (!clientId) {
@@ -36,6 +39,9 @@ export function handleAuthCallback() {
 
   if (accessToken && expiresIn) {
     const expiryTime = Date.now() + parseInt(expiresIn) * 1000;
+    // Persist tokens
+    localStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
+    localStorage.setItem(EXPIRY_STORAGE_KEY, expiryTime.toString());
     return { accessToken, expiryTime };
   }
 
@@ -50,15 +56,30 @@ export function checkTokenExpiry(expiryTime: number) {
 export function refreshSession() {
   const { accessToken, tokenExpiryTime, logout } = useAuthStore.getState();
   
-  if (!accessToken || !tokenExpiryTime) {
+  // Try to get from localStorage if not in state
+  const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+  const storedExpiry = localStorage.getItem(EXPIRY_STORAGE_KEY);
+  
+  const currentToken = accessToken || storedToken;
+  const currentExpiry = tokenExpiryTime || (storedExpiry ? parseInt(storedExpiry) : null);
+
+  if (!currentToken || !currentExpiry) {
     logout();
     return false;
   }
 
-  if (checkTokenExpiry(tokenExpiryTime)) {
+  if (checkTokenExpiry(currentExpiry)) {
+    // Clear stored tokens
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(EXPIRY_STORAGE_KEY);
     logout();
     initiateAuth();
     return false;
+  }
+
+  // Update state if using stored values
+  if (storedToken && storedExpiry && (!accessToken || !tokenExpiryTime)) {
+    useAuthStore.getState().setAuth(storedToken, parseInt(storedExpiry));
   }
 
   return true;

@@ -13,6 +13,14 @@ export interface VideoData {
   thumbnail: string;
 }
 
+export interface ChannelProfile {
+  id: string;
+  title: string;
+  thumbnail: string;
+  customUrl?: string;
+  subscriberCount: string;
+}
+
 export async function getChannelStats(accessToken: string) {
   if (!accessToken) {
     throw new Error('Access token is required');
@@ -194,5 +202,39 @@ export async function getChannelSubscribers(accessToken: string): Promise<number
   } catch (error) {
     console.error('Error fetching channel subscribers:', error);
     return 0; // Return 0 if there's an error
+  }
+}
+
+export async function getChannelProfile(accessToken: string): Promise<ChannelProfile> {
+  if (!accessToken) {
+    throw new Error('Access token is required');
+  }
+
+  try {
+    const response = await fetchWithAuth(
+      `${YOUTUBE_API_BASE}/channels?part=snippet,statistics&mine=true`,
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      },
+      accessToken
+    );
+
+    if (!response.items?.[0]) {
+      throw new Error('No channel found');
+    }
+
+    const channel = response.items[0];
+    return {
+      id: channel.id,
+      title: channel.snippet.title,
+      thumbnail: channel.snippet.thumbnails.default.url,
+      customUrl: channel.snippet.customUrl,
+      subscriberCount: channel.statistics.subscriberCount
+    };
+  } catch (error: any) {
+    console.error('Error fetching channel profile:', error);
+    throw error;
   }
 }

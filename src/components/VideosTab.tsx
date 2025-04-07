@@ -10,6 +10,7 @@ import { VideoSuggestionsModal } from './VideoSuggestionsModal';
 import { VideoData } from '../types/youtube';
 import { Loader2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { refreshSession } from '../services/auth';
 
 export function VideosTab() {
   const { accessToken, isAuthenticated } = useAuthStore();
@@ -18,9 +19,20 @@ export function VideosTab() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSuggestionsModal, setShowSuggestionsModal] = useState(false);
 
+  // Add auth check effect
+  useEffect(() => {
+    if (!isAuthenticated) {
+      const wasRestored = refreshSession();
+      if (!wasRestored) {
+        toast.error('Session expired. Please sign in again.');
+      }
+    }
+  }, [isAuthenticated]);
+
   const { data: videos, isLoading, refetch, error } = useQuery(
     ['videos', accessToken],
     async () => {
+      if (!refreshSession()) return null;
       if (!accessToken) return null;
       try {
         const videos = await getChannelVideos(accessToken);
@@ -62,7 +74,11 @@ export function VideosTab() {
       retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
       onError: (error: any) => {
         const message = error?.message || 'Failed to load videos';
-        toast.error(`${message}. Retrying...`);
+        if (message.includes('401') || message.toLowerCase().includes('unauthorized')) {
+          refreshSession();
+        } else {
+          toast.error(`${message}. Retrying...`);
+        }
         console.error('Videos fetch error:', error);
       }
     }
