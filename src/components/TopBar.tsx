@@ -3,9 +3,32 @@ import { Menu, Bell, Search, LogIn } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { initiateAuth } from '../services/auth';
 import toast from 'react-hot-toast';
+import { useQuery } from 'react-query';
 
 export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const { isAuthenticated, logout } = useAuthStore();
+
+  // Add profile data query
+  const { data: profile } = useQuery(
+    'channelProfile',
+    async () => {
+      const res = await fetch(
+        'https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true',
+        {
+          headers: {
+            'Authorization': `Bearer ${useAuthStore.getState().accessToken}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
+      const data = await res.json();
+      return data.items?.[0]?.snippet;
+    },
+    {
+      enabled: isAuthenticated,
+      staleTime: 5 * 60 * 1000
+    }
+  );
 
   const handleAuth = async () => {
     if (isAuthenticated) {
@@ -62,11 +85,15 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
           >
             {isAuthenticated ? (
               <>
-                <img
-                  src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=32&h=32"
-                  alt="Profile"
-                  className="w-6 h-6 rounded-full"
-                />
+                {profile?.thumbnails?.default?.url ? (
+                  <img
+                    src={profile.thumbnails.default.url}
+                    alt="Channel"
+                    className="w-6 h-6 rounded-full"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-gray-300" />
+                )}
                 <span className="hidden md:inline">Logout</span>
               </>
             ) : (

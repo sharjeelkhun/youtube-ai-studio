@@ -4,7 +4,7 @@ import { Layout } from './components/Layout';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/authStore';
-import { handleAuthCallback, refreshSession } from './services/auth';
+import { handleAuthCallback, refreshSession, checkStoredSession } from './services/auth';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,6 +27,9 @@ function App() {
   const { setAuth } = useAuthStore();
 
   useEffect(() => {
+    // Restore session on app start
+    checkStoredSession();
+
     // Handle OAuth callback
     const authResult = handleAuthCallback();
     if (authResult) {

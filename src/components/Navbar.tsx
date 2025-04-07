@@ -3,6 +3,8 @@ import { Menu } from '@headlessui/react';
 import { LogOut, User, Youtube } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useQuery } from 'react-query';
+import { refreshSession } from '../services/auth';
+import toast from 'react-hot-toast';
 
 export function ProfileButton() {
   const { accessToken, logout } = useAuthStore();
@@ -19,6 +21,12 @@ export function ProfileButton() {
           },
         }
       );
+      if (!res.ok) {
+        if (res.status === 401) {
+          return null; // Will trigger reauth through error boundary
+        }
+        throw new Error('Failed to fetch profile');
+      }
       const data = await res.json();
       if (!data.items?.[0]) throw new Error('No channel found');
       
@@ -31,8 +39,17 @@ export function ProfileButton() {
     },
     {
       enabled: !!accessToken,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 2
+      staleTime: 30 * 60 * 1000, // 30 minutes
+      cacheTime: 60 * 60 * 1000, // 1 hour
+      retry: 1,
+      onError: (error) => {
+        console.error('Profile fetch error:', error);
+        const wasRefreshed = refreshSession();
+        if (!wasRefreshed) {
+          toast.error('Session expired. Please sign in again.');
+          logout();
+        }
+      }
     }
   );
 

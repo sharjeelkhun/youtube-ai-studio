@@ -39,9 +39,10 @@ export function handleAuthCallback() {
 
   if (accessToken && expiresIn) {
     const expiryTime = Date.now() + parseInt(expiresIn) * 1000;
-    // Persist tokens
+    // Store with longer expiry and refresh token handling
     localStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
-    localStorage.setItem(EXPIRY_STORAGE_KEY, expiryTime.toString());
+    localStorage.setItem(EXPIRY_STORAGE_KEY, (expiryTime + 24 * 60 * 60 * 1000).toString()); // Add 24 hours
+    useAuthStore.getState().setAuth(accessToken, expiryTime);
     return { accessToken, expiryTime };
   }
 
@@ -54,33 +55,46 @@ export function checkTokenExpiry(expiryTime: number) {
 }
 
 export function refreshSession() {
-  const { accessToken, tokenExpiryTime, logout } = useAuthStore.getState();
+  const { accessToken, tokenExpiryTime, logout, setAuth } = useAuthStore.getState();
   
-  // Try to get from localStorage if not in state
+  // Try to get from localStorage first
   const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
   const storedExpiry = localStorage.getItem(EXPIRY_STORAGE_KEY);
   
-  const currentToken = accessToken || storedToken;
-  const currentExpiry = tokenExpiryTime || (storedExpiry ? parseInt(storedExpiry) : null);
-
-  if (!currentToken || !currentExpiry) {
-    logout();
-    return false;
+  // If we have stored credentials, use them
+  if (storedToken && storedExpiry) {
+    const expiryTime = parseInt(storedExpiry);
+    
+    // If stored token is still valid, use it
+    if (Date.now() < expiryTime) {
+      setAuth(storedToken, expiryTime);
+      return true;
+    }
   }
 
-  if (checkTokenExpiry(currentExpiry)) {
-    // Clear stored tokens
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
-    localStorage.removeItem(EXPIRY_STORAGE_KEY);
-    logout();
-    initiateAuth();
-    return false;
+  // If we have a current token that's not expired, keep using it
+  if (accessToken && tokenExpiryTime && Date.now() < tokenExpiryTime) {
+    return true;
   }
 
-  // Update state if using stored values
-  if (storedToken && storedExpiry && (!accessToken || !tokenExpiryTime)) {
-    useAuthStore.getState().setAuth(storedToken, parseInt(storedExpiry));
-  }
+  // Clear everything if we get here
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
+  localStorage.removeItem(EXPIRY_STORAGE_KEY);
+  logout();
+  return false;
+}
 
-  return true;
+// Add this new function to check session on app start
+export function checkStoredSession() {
+  const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+  const storedExpiry = localStorage.getItem(EXPIRY_STORAGE_KEY);
+
+  if (storedToken && storedExpiry) {
+    const expiryTime = parseInt(storedExpiry);
+    if (Date.now() < expiryTime) {
+      useAuthStore.getState().setAuth(storedToken, expiryTime);
+      return true;
+    }
+  }
+  return false;
 }
