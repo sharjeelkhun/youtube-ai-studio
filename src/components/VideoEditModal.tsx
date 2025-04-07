@@ -145,9 +145,9 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ type: "spring", duration: 0.3, bounce: 0 }}
-        className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl mt-4"
+        className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl mt-4 max-h-[calc(100vh-2rem)] flex flex-col"
       >
-        <div className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-200/80">
+        <div className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-200/80 flex-shrink-0">
           <div className="px-6 py-4 flex justify-between items-center">
             <div className="flex items-center gap-4">
               <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
@@ -175,8 +175,8 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2">
-          <div className="p-6 border-r border-gray-200/80">
+        <div className="grid grid-cols-1 lg:grid-cols-2 flex-1 overflow-hidden">
+          <div className="p-6 border-r border-gray-200/80 overflow-y-auto">
             <div className="bg-gradient-to-b from-gray-50 to-white rounded-xl p-4 mb-6 shadow-sm">
               <div className="aspect-video rounded-lg overflow-hidden shadow-md mb-4">
                 <img
@@ -212,7 +212,7 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
           </div>
 
           <motion.div 
-            className="bg-gradient-to-br from-gray-50 to-white p-6"
+            className="bg-gradient-to-br from-gray-50 to-white p-6 overflow-y-auto"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3, bounce: 0 }}
