@@ -123,7 +123,8 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       if (cachedScore?.timestamp) {
         const scoreAge = Date.now() - cachedScore.timestamp;
         if (scoreAge < 24 * 60 * 60 * 1000) {
-          return cachedScore.score;
+          // Convert score to percentage if needed
+          return cachedScore.score > 1 ? cachedScore.score : cachedScore.score * 100;
         }
       }
 

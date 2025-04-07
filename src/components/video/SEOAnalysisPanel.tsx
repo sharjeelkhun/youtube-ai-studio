@@ -33,8 +33,14 @@ export function SEOAnalysisPanel({ analysis }: SEOAnalysisPanelProps) {
 
   // Normalize and validate scores
   const normalizeScore = (score: number | null | undefined): number => {
+    // Handle invalid scores
     if (score === null || score === undefined || isNaN(score)) return 0;
-    return Math.min(Math.max(Math.round(score), 0), 100);
+    
+    // Convert decimal scores to percentages
+    const percentage = score > 1 ? score : score * 100;
+    
+    // Ensure score is within valid range
+    return Math.min(Math.max(Math.round(percentage), 0), 100);
   };
 
   const mergedAnalysis = {
