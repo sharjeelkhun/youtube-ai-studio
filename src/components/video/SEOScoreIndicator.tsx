@@ -26,11 +26,14 @@ export function SEOScoreIndicator({ score, size }: SEOScoreIndicatorProps) {
     return null;
   }
 
+  // Normalize score to ensure it's displayed as a whole number percentage
+  const displayScore = Math.round(score < 1 ? score * 100 : score);
+
   return (
     <div
-      className={`flex items-center justify-center rounded-full ${getScoreColor(score)} backdrop-blur-md ${sizeClasses[size]} shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl border border-white/20`}
+      className={`flex items-center justify-center rounded-full ${getScoreColor(displayScore)} backdrop-blur-md ${sizeClasses[size]} shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl border border-white/20`}
     >
-      {score}%
+      {displayScore}%
     </div>
   );
 }

@@ -65,6 +65,12 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
     }
   );
 
+  const normalizeScore = (score: number | null | undefined): number => {
+    if (score === null || score === undefined || isNaN(score)) return 50;
+    // Convert decimal scores to percentage
+    return score < 1 ? score * 100 : score;
+  };
+
   React.useEffect(() => {
     // Prefetch the next queries
     if (cohereKey) {
