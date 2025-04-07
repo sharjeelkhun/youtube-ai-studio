@@ -200,17 +200,17 @@ class AIService {
       score: normalizeScore(analysis.score),
       titleAnalysis: {
         score: normalizeScore(analysis.titleAnalysis?.score),
-        suggestions: analysis.titleAnalysis?.suggestions || []
+        suggestions: analysis.titleAnalysis?.suggestions ?? []
       },
       descriptionAnalysis: {
         score: normalizeScore(analysis.descriptionAnalysis?.score),
-        suggestions: analysis.descriptionAnalysis?.suggestions || []
+        suggestions: analysis.descriptionAnalysis?.suggestions ?? []
       },
       tagsAnalysis: {
         score: normalizeScore(analysis.tagsAnalysis?.score),
-        suggestions: analysis.tagsAnalysis?.suggestions || []
+        suggestions: analysis.tagsAnalysis?.suggestions ?? []
       },
-      overallSuggestions: analysis.overallSuggestions || []
+      overallSuggestions: Array.isArray(analysis.overallSuggestions) ? analysis.overallSuggestions : []
     };
   }
 
@@ -248,7 +248,8 @@ class AIService {
       overallSuggestions: lines.filter(line => 
         !suggestions.title.includes(line) &&
         !suggestions.description.includes(line) &&
-        !suggestions.tags.includes(line)
+        !suggestions.tags.includes(line) &&
+        line.trim().length > 0
       )
     };
   }

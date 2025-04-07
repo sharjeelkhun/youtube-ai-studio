@@ -4,12 +4,12 @@ import { Edit2, Wand2, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { SEOScoreIndicator } from './video/SEOScoreIndicator';
-import { throttledAnalyzeSEO } from '../services/ai';
-import { parseSEOAnalysis } from '../services/seoAnalysis';
+import { analyzeSEO } from '../services/seoService';
 import { useAPIKeyStore } from '../store/apiKeyStore';
 import { useSEOStore } from '../store/seoStore';
 import { useQuery, useQueryClient } from 'react-query';
 import toast from 'react-hot-toast';
+import { SEOAnalysis } from '../types/seo';
 
 // Constants for processing
 const BATCH_SIZE = 5;
@@ -114,66 +114,40 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
     );
   };
 
-  const { data: seoScore, isLoading, error } = useQuery(
+  const { data: seoScore, isLoading } = useQuery(
     ['seo-score', video.id],
     async () => {
       if (!cohereKey) return null;
       
+      const cachedScore = storedScore as SEOAnalysis | null;
+      if (cachedScore?.timestamp) {
+        const scoreAge = Date.now() - cachedScore.timestamp;
+        if (scoreAge < 24 * 60 * 60 * 1000) {
+          return cachedScore.score;
+        }
+      }
+
       try {
-        const batchDelay = (batchIndex.current * DELAY_BETWEEN_BATCHES) / BATCH_SIZE;
-        await new Promise(resolve => setTimeout(resolve, batchDelay));
-        
-        const rawResponse = await throttledAnalyzeSEO(video.title, video.description, video.tags);
-        if (!rawResponse) return null;
-
-        const parsedResponse = typeof rawResponse === 'string' ? 
-          parseSEOAnalysis(rawResponse) : rawResponse;
-
-        if (!validateResponse(parsedResponse)) {
-          console.error('Invalid response structure:', parsedResponse);
-          return null;
-        }
-
-        const score = calculateVideoScore({
-          ...parsedResponse,
-          title: video.title,
-          description: video.description,
-          tags: video.tags
-        });
-
-        if (score > 0) {
-          useSEOStore.getState().setScore(video.id, {
-            ...parsedResponse,
-            score: score / 100
-          });
-          return score;
+        const analysis = await analyzeSEO(video.title, video.description, video.tags);
+        if (analysis) {
+          useSEOStore.getState().setScore(video.id, analysis);
+          return analysis.score;
         }
         return null;
-
       } catch (error: any) {
-        console.error('Error calculating SEO score:', error);
-        const isRateLimit = error.message?.includes('Rate limit');
-        
-        if (isRateLimit && retryCountRef.current < MAX_RETRIES) {
-          const delay = Math.min(MIN_RETRY_DELAY * Math.pow(2, retryCountRef.current), MAX_RETRY_DELAY);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          retryCountRef.current++;
-          throw error; // Trigger retry
+        if (error.message?.includes('Rate limit')) {
+          // Return stored score if available when rate limited
+          return storedScore?.score || null;
         }
-        
-        return null;
+        throw error;
       }
     },
     {
-      enabled: !!cohereKey && !!video.title && video.title.length > 0,
-      staleTime: 12 * 60 * 60 * 1000,
-      cacheTime: 24 * 60 * 60 * 1000,
-      retry: MAX_RETRIES,
-      retryDelay: (attemptIndex) => Math.min(MIN_RETRY_DELAY * Math.pow(2, attemptIndex), MAX_RETRY_DELAY),
-      onError: (err) => {
-        console.error('Query error:', err);
-        retryCountRef.current = 0;
-      }
+      enabled: !!cohereKey && !!video.title,
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
+      staleTime: 12 * 60 * 60 * 1000, // 12 hours
+      cacheTime: 24 * 60 * 60 * 1000, // 24 hours
     }
   );
 

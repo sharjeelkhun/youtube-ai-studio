@@ -2,49 +2,65 @@ import React from 'react';
 import { SEOAnalysis, DEFAULT_SEO_ANALYSIS } from '../../types/seo';
 import { SEOScoreIndicator } from './SEOScoreIndicator';
 import { motion } from 'framer-motion';
-import { Sparkles, Layout, Tags, LineChart, Image } from 'lucide-react';
+import { Sparkles, Layout, Tags, LineChart, Image, AlertCircle } from 'lucide-react';
 
 interface SEOAnalysisPanelProps {
-  analysis: SEOAnalysis;
+  analysis: SEOAnalysis | null;
+}
+
+interface SectionData {
+  score: number;
+  suggestions: string[];
+}
+
+interface Section {
+  title: string;
+  icon: React.ReactNode;
+  data: SectionData;
+  color: string;
 }
 
 export function SEOAnalysisPanel({ analysis }: SEOAnalysisPanelProps) {
+  // Handle null analysis case
   if (!analysis) {
     return (
-      <div className="text-center text-gray-500">
-        <p>No analysis available yet</p>
+      <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-lg">
+        <AlertCircle className="w-8 h-8 text-gray-400 mb-2" />
+        <p className="text-gray-600 text-center">No analysis available yet</p>
       </div>
     );
   }
 
-  // Convert decimal scores to percentages
-  const formatScore = (score: number | null) => {
-    if (score === null) return null;
-    return Math.round(score * 100);
+  // Normalize and validate scores
+  const normalizeScore = (score: number | null | undefined): number => {
+    if (score === null || score === undefined || isNaN(score)) return 0;
+    return Math.min(Math.max(Math.round(score), 0), 100);
   };
 
   const mergedAnalysis = {
-    ...DEFAULT_SEO_ANALYSIS,
-    ...analysis,
-    score: formatScore(analysis.score),
+    score: normalizeScore(analysis?.score),
     titleAnalysis: {
-      ...DEFAULT_SEO_ANALYSIS.titleAnalysis,
-      ...analysis.titleAnalysis,
-      score: formatScore(analysis.titleAnalysis?.score)
+      score: normalizeScore(analysis?.titleAnalysis?.score),
+      suggestions: analysis?.titleAnalysis?.suggestions ?? []
     },
     descriptionAnalysis: {
-      ...DEFAULT_SEO_ANALYSIS.descriptionAnalysis,
-      ...analysis.descriptionAnalysis,
-      score: formatScore(analysis.descriptionAnalysis?.score)
+      score: normalizeScore(analysis?.descriptionAnalysis?.score),
+      suggestions: analysis?.descriptionAnalysis?.suggestions ?? []
     },
     tagsAnalysis: {
-      ...DEFAULT_SEO_ANALYSIS.tagsAnalysis,
-      ...analysis.tagsAnalysis,
-      score: formatScore(analysis.tagsAnalysis?.score)
-    }
+      score: normalizeScore(analysis?.tagsAnalysis?.score),
+      suggestions: analysis?.tagsAnalysis?.suggestions ?? []
+    },
+    overallSuggestions: analysis?.overallSuggestions ?? []
   };
 
-  const sections = [
+  const filterSuggestions = (keywords: string[]): string[] => {
+    return (mergedAnalysis.overallSuggestions || []).filter(s => 
+      s && keywords.some(keyword => s.toLowerCase().includes(keyword))
+    );
+  };
+
+  const sections: Section[] = [
     {
       title: 'Title Analysis',
       icon: <Layout className="w-5 h-5" />,
@@ -68,11 +84,7 @@ export function SEOAnalysisPanel({ analysis }: SEOAnalysisPanelProps) {
       icon: <LineChart className="w-5 h-5" />,
       data: {
         score: mergedAnalysis.score,
-        suggestions: mergedAnalysis.overallSuggestions.filter(s => 
-          s.toLowerCase().includes('engage') || 
-          s.toLowerCase().includes('viewer') ||
-          s.toLowerCase().includes('audience')
-        )
+        suggestions: filterSuggestions(['engage', 'viewer', 'audience'])
       },
       color: 'bg-orange-50 border-orange-200'
     },
@@ -81,11 +93,7 @@ export function SEOAnalysisPanel({ analysis }: SEOAnalysisPanelProps) {
       icon: <Image className="w-5 h-5" />,
       data: {
         score: mergedAnalysis.score,
-        suggestions: mergedAnalysis.overallSuggestions.filter(s => 
-          s.toLowerCase().includes('thumbnail') || 
-          s.toLowerCase().includes('visual') ||
-          s.toLowerCase().includes('image')
-        )
+        suggestions: filterSuggestions(['thumbnail', 'visual', 'image'])
       },
       color: 'bg-pink-50 border-pink-200'
     }
@@ -100,8 +108,8 @@ export function SEOAnalysisPanel({ analysis }: SEOAnalysisPanelProps) {
             Overall SEO Score
           </h3>
           <p className="text-gray-600">
-            {mergedAnalysis.score === null 
-              ? "Analysis in progress..." 
+            {mergedAnalysis.score === 0
+              ? "Analysis in progress..."
               : "Comprehensive analysis of your video's SEO performance"}
           </p>
         </div>

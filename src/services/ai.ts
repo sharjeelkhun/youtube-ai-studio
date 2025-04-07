@@ -5,99 +5,59 @@ import toast from 'react-hot-toast';
 import { SEOAnalysis } from '../types/seo';
 import { useAPIKeyStore } from '../store/apiKeyStore';
 import { tryParseJson } from '../utils/json';
-import { throttle } from '../utils/throttle';
+import { RateLimiter } from '../utils/rateLimiter';
 
 const seoCache = new Map<string, SEOAnalysis>();
 
-// Global rate limiting
-const requestQueue: Array<() => Promise<any>> = [];
-let isProcessing = false;
-let lastRequestTime = Date.now();
-const MIN_REQUEST_DELAY = 2000; // 2 seconds between requests
-
-const processQueue = async () => {
-  if (isProcessing) return;
-  isProcessing = true;
-
-  while (requestQueue.length > 0) {
-    const now = Date.now();
-    const timeSinceLastRequest = now - lastRequestTime;
-    
-    if (timeSinceLastRequest < MIN_REQUEST_DELAY) {
-      await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_DELAY - timeSinceLastRequest));
-    }
-
-    const request = requestQueue.shift();
-    if (request) {
-      lastRequestTime = Date.now();
-      try {
-        await request();
-      } catch (error) {
-        console.error('Queue processing error:', error);
-        // Add delay after error
-        await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_DELAY));
-      }
-    }
-  }
-
-  isProcessing = false;
-};
+const rateLimiter = new RateLimiter(30); // 30 requests per minute
 
 export async function analyzeSEO(title: string, description: string, tags: string[]): Promise<SEOAnalysis> {
-  return new Promise((resolve, reject) => {
-    const request = async () => {
-      const cacheKey = `${title}-${description}-${tags.join(',')}`;
-      if (seoCache.has(cacheKey)) {
-        resolve(seoCache.get(cacheKey)!);
-        return;
-      }
+  return rateLimiter.execute(async () => {
+    const cacheKey = `${title}-${description}-${tags.join(',')}`;
+    if (seoCache.has(cacheKey)) {
+      return seoCache.get(cacheKey)!;
+    }
 
-      let retryCount = 0;
-      const maxRetries = 3;
+    let retryCount = 0;
+    const maxRetries = 3;
 
-      while (retryCount < maxRetries) {
-        try {
-          const response = await aiService.generateContent(`Analyze this YouTube video content for SEO optimization...`);
-          const data = tryParseJson(response, {}) as SEOAnalysis;
+    while (retryCount < maxRetries) {
+      try {
+        const response = await aiService.generateContent(`Analyze this YouTube video content for SEO optimization...`);
+        const data = tryParseJson(response, {}) as SEOAnalysis;
 
-          if (!data || typeof data.score !== 'number') {
-            throw new Error('Invalid SEO analysis data structure');
-          }
-
-          seoCache.set(cacheKey, data);
-          resolve(data);
-          return;
-        } catch (error: any) {
-          const isRateLimit = 
-            error.message?.includes('Rate limit') || 
-            error.status === 429 ||
-            error.response?.status === 429;
-
-          if (isRateLimit) {
-            console.warn(`Rate limit hit, attempt ${retryCount + 1}/${maxRetries}`);
-            const backoffTime = Math.min(1000 * Math.pow(2, retryCount), 30000);
-            await new Promise(resolve => setTimeout(resolve, backoffTime));
-            retryCount++;
-            continue;
-          }
-
-          if (retryCount < maxRetries - 1) {
-            console.warn(`Retrying after error: ${error.message}`);
-            retryCount++;
-            continue;
-          }
-
-          console.error('Error analyzing SEO:', error);
-          reject(error);
-          return;
+        if (!data || typeof data.score !== 'number') {
+          throw new Error('Invalid SEO analysis data structure');
         }
+
+        seoCache.set(cacheKey, data);
+        return data;
+      } catch (error: any) {
+        const isRateLimit = 
+          error.message?.includes('Rate limit') || 
+          error.status === 429 ||
+          error.response?.status === 429;
+
+        if (isRateLimit) {
+          console.warn(`Rate limit hit, attempt ${retryCount + 1}/${maxRetries}`);
+          const backoffTime = Math.min(1000 * Math.pow(2, retryCount), 30000);
+          await new Promise(resolve => setTimeout(resolve, backoffTime));
+          retryCount++;
+          continue;
+        }
+
+        if (retryCount < maxRetries - 1) {
+          console.warn(`Retrying after error: ${error.message}`);
+          retryCount++;
+          continue;
+        }
+
+        console.error('Error analyzing SEO:', error);
+        throw error;
       }
+    }
 
-      reject(new Error('Failed to analyze SEO after multiple retries'));
-    };
-
-    requestQueue.push(request);
-    processQueue();
+    throw new Error('Failed to analyze SEO after multiple retries');
   });
 }
 
@@ -278,6 +238,3 @@ function handleAPIError(response: Response): void {
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
 }
-
-// Wrap analyzeSEO with throttle to limit requests
-export const throttledAnalyzeSEO = throttle(analyzeSEO, 1000); // Limit to 1 request per second
