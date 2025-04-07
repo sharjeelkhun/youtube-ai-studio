@@ -1,5 +1,6 @@
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
+import { logger } from '../utils/logger';
 
 const YOUTUBE_SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
@@ -57,7 +58,7 @@ export function checkTokenExpiry(expiryTime: number) {
 }
 
 export function refreshSession() {
-  console.log('[Session Check] Starting session refresh check');
+  logger.auth('Starting session refresh check');
   const { accessToken, tokenExpiryTime, logout, setAuth } = useAuthStore.getState();
   
   // Try to get from localStorage first
@@ -66,10 +67,10 @@ export function refreshSession() {
   
   if (storedToken && storedExpiry) {
     const expiryTime = parseInt(storedExpiry);
-    console.log('[Session Check] Found stored token, expires:', new Date(expiryTime));
+    logger.auth('Found stored token', { expiryTime: new Date(expiryTime).toISOString() });
     
     if (Date.now() < expiryTime) {
-      console.log('[Session Check] Using stored token');
+      logger.auth('Using stored token');
       setAuth(storedToken, expiryTime);
       return true;
     }

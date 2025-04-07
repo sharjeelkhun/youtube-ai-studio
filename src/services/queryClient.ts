@@ -1,4 +1,5 @@
 import { QueryClient } from 'react-query';
+import { logger } from '../utils/logger';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,27 +14,28 @@ export const queryClient = new QueryClient({
       suspense: false,
     },
   },
-  // Add query lifecycle logging
   queryCache: {
     onError: (error, query) => {
-      console.log(`[Query Error] ${query.queryKey}: ${error}`);
+      logger.error(`Query failed: ${JSON.stringify(query.queryKey)}`, error);
     },
     onSuccess: (data, query) => {
-      console.log(`[Query Success] ${query.queryKey}`);
+      logger.query(`Success: ${JSON.stringify(query.queryKey)}`);
     },
     onStale: (query) => {
-      console.log(`[Query Stale] ${query.queryKey}`);
-    },
+      logger.cache(`Query became stale: ${JSON.stringify(query.queryKey}`);
+    }
   }
 });
 
-// Add query state change listener
+// Add detailed cache monitoring
 queryClient.getQueryCache().subscribe((event) => {
   if (event?.type === 'queryUpdated') {
-    console.log(`[Query Updated] ${event.query.queryKey}:`, {
-      state: event.query.state,
+    logger.cache('Query cache updated', {
+      key: event.query.queryKey,
+      state: event.query.state.status,
       isStale: event.query.isStale(),
-      lastUpdated: event.query.state.dataUpdatedAt
+      lastUpdated: new Date(event.query.state.dataUpdatedAt).toISOString(),
+      observers: event.query.getObserversCount()
     });
   }
 });

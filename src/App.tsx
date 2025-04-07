@@ -7,6 +7,7 @@ import { useAuthStore } from './store/authStore';
 import { handleAuthCallback, refreshSession, checkStoredSession } from './services/auth';
 import { VideoProvider } from './contexts/VideoContext';
 import { queryClient } from './services/queryClient';
+import { logger } from './utils/logger';
 
 const router = createBrowserRouter([
   {
@@ -19,11 +20,11 @@ function App() {
   const { setAuth } = useAuthStore();
 
   useEffect(() => {
-    console.log('[App] Initial mount');
+    logger.auth('App mounted');
     
     // Initial session check
     const wasRestored = checkStoredSession();
-    console.log('[App] Session restored:', wasRestored);
+    logger.auth('Session restored', { success: wasRestored });
     
     if (!wasRestored) {
       console.log('[App] Clearing queries due to failed session restore');
@@ -33,17 +34,19 @@ function App() {
     // Handle OAuth callback
     const authResult = handleAuthCallback();
     if (authResult) {
-      console.log('[App] Handling OAuth callback');
+      logger.auth('OAuth callback handled', { 
+        expiryTime: new Date(authResult.expiryTime).toISOString() 
+      });
       setAuth(authResult.accessToken, authResult.expiryTime);
       window.location.hash = '';
     }
 
-    // Periodic session check
+    // Session check interval
     const checkSession = setInterval(() => {
-      console.log('[App] Running periodic session check');
+      logger.auth('Periodic session check started');
       const wasRefreshed = refreshSession();
       if (!wasRefreshed) {
-        console.log('[App] Session refresh failed, invalidating queries');
+        logger.auth('Session refresh failed - invalidating queries');
         queryClient.invalidateQueries(['videos']);
         queryClient.invalidateQueries(['analytics']);
       }
