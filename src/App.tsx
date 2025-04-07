@@ -29,10 +29,14 @@ function App() {
       window.location.hash = '';
     }
 
-    // Check session validity periodically
+    // Reduced frequency of session checks to prevent unnecessary refreshes
     const checkSession = setInterval(() => {
-      refreshSession();
-    }, 60000); // Check every minute
+      const wasRefreshed = refreshSession();
+      if (!wasRefreshed) {
+        // Only invalidate queries if session actually expired
+        queryClient.invalidateQueries();
+      }
+    }, 5 * 60 * 1000); // Check every 5 minutes instead of every minute
 
     return () => clearInterval(checkSession);
   }, [setAuth]);

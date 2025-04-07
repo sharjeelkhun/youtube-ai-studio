@@ -42,13 +42,12 @@ export function VideosTab() {
     },
     {
       enabled: !!accessToken,
-      staleTime: Infinity, // Never consider data stale automatically
-      cacheTime: Infinity, // Keep data cached indefinitely
-      refetchOnWindowFocus: false,
+      staleTime: 30 * 60 * 1000, // Consider fresh for 30 minutes
+      cacheTime: 60 * 60 * 1000, // Keep in cache for 1 hour
       refetchOnMount: false,
+      refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       refetchInterval: false,
-      retry: 1,
     }
   );
 

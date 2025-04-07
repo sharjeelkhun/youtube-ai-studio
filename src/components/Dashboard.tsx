@@ -19,7 +19,11 @@ export function Dashboard() {
     () => getChannelVideos(accessToken!),
     {
       enabled: !!accessToken,
-      staleTime: 5 * 60 * 1000,
+      staleTime: 30 * 60 * 1000, // Consider fresh for 30 minutes
+      cacheTime: 60 * 60 * 1000, // Keep in cache for 1 hour
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     } 
   );
 
@@ -28,7 +32,11 @@ export function Dashboard() {
     () => getChannelAnalytics(accessToken!, videos!, timeRange),
     {
       enabled: !!videos,
-      staleTime: 5 * 60 * 1000,
+      staleTime: 30 * 60 * 1000,
+      cacheTime: 60 * 60 * 1000,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     }
   );
 
