@@ -57,29 +57,30 @@ export function checkTokenExpiry(expiryTime: number) {
 }
 
 export function refreshSession() {
+  console.log('[Session Check] Starting session refresh check');
   const { accessToken, tokenExpiryTime, logout, setAuth } = useAuthStore.getState();
   
   // Try to get from localStorage first
   const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
   const storedExpiry = localStorage.getItem(EXPIRY_STORAGE_KEY);
   
-  // If we have stored credentials, use them
   if (storedToken && storedExpiry) {
     const expiryTime = parseInt(storedExpiry);
+    console.log('[Session Check] Found stored token, expires:', new Date(expiryTime));
     
-    // If stored token is still valid, use it
     if (Date.now() < expiryTime) {
+      console.log('[Session Check] Using stored token');
       setAuth(storedToken, expiryTime);
       return true;
     }
   }
 
-  // If we have a current token that's not expired, keep using it
   if (accessToken && tokenExpiryTime && Date.now() < tokenExpiryTime) {
+    console.log('[Session Check] Using current token');
     return true;
   }
 
-  // Clear everything if we get here
+  console.log('[Session Check] Session expired, logging out');
   localStorage.removeItem(TOKEN_STORAGE_KEY);
   localStorage.removeItem(EXPIRY_STORAGE_KEY);
   logout();

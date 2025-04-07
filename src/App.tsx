@@ -19,27 +19,35 @@ function App() {
   const { setAuth } = useAuthStore();
 
   useEffect(() => {
+    console.log('[App] Initial mount');
+    
     // Initial session check
     const wasRestored = checkStoredSession();
+    console.log('[App] Session restored:', wasRestored);
+    
     if (!wasRestored) {
-      queryClient.clear(); // Clear all queries if session restore fails
+      console.log('[App] Clearing queries due to failed session restore');
+      queryClient.clear();
     }
 
     // Handle OAuth callback
     const authResult = handleAuthCallback();
     if (authResult) {
+      console.log('[App] Handling OAuth callback');
       setAuth(authResult.accessToken, authResult.expiryTime);
       window.location.hash = '';
     }
 
-    // Periodic session check - reduced frequency
+    // Periodic session check
     const checkSession = setInterval(() => {
+      console.log('[App] Running periodic session check');
       const wasRefreshed = refreshSession();
       if (!wasRefreshed) {
+        console.log('[App] Session refresh failed, invalidating queries');
         queryClient.invalidateQueries(['videos']);
         queryClient.invalidateQueries(['analytics']);
       }
-    }, 10 * 60 * 1000); // Check every 10 minutes
+    }, 10 * 60 * 1000);
 
     return () => clearInterval(checkSession);
   }, [setAuth]);
