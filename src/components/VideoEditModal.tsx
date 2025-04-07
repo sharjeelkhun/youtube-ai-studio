@@ -138,14 +138,14 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-gray-900/70 backdrop-blur-sm flex items-start justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
     >
       <motion.div 
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ type: "spring", duration: 0.3, bounce: 0 }}
-        className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl mt-4 max-h-[calc(100vh-2rem)] flex flex-col"
+        className="relative w-full max-w-5xl bg-white rounded-lg shadow-2xl max-h-[80vh] flex flex-col overflow-hidden"
       >
         <div className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-200/80 flex-shrink-0">
           <div className="px-6 py-4 flex justify-between items-center">
