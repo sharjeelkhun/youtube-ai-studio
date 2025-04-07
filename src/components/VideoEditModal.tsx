@@ -42,25 +42,20 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
         tags: video.tags
       });
       
-      // Immediately start SEO analysis
       const initAnalysis = async () => {
         try {
           const analysis = await analyzeSEO(video.title, video.description, video.tags);
           if (analysis) {
             setSeoAnalysis(analysis);
-            useSEOStore.getState().setScore(video.id, analysis);
           }
         } catch (error) {
           console.error('Error analyzing SEO:', error);
-          // Don't show error toast here since we're auto-loading
         }
       };
       
       initAnalysis();
     }
   }, [isOpen, video]);
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (data: { title: string; description: string; tags: string[] }) => {
     if (!accessToken || !refreshSession()) {
@@ -74,14 +69,11 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
       setFormData(data);
       onUpdate();
       toast.success('Video details updated successfully');
-      // Removed onClose() here to prevent auto-closing
     } catch (error: any) {
       console.error('Failed to update video:', error);
       toast.error(error.message || 'Failed to update video details');
-      // Don't close modal on error
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
 
   const handleOptimize = async () => {
@@ -105,7 +97,6 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
         likes: video.likes,
       });
 
-      // Update form data with optimized content
       const newFormData = {
         title: optimizedData.title || formData.title,
         description: optimizedData.description || formData.description,
@@ -114,7 +105,6 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
 
       setFormData(newFormData);
 
-      // Only update form fields if videoForm ref is available
       if (videoForm.current) {
         const titleInput = videoForm.current.querySelector<HTMLInputElement>('input[name="title"]');
         const descriptionInput = videoForm.current.querySelector<HTMLTextAreaElement>('textarea[name="description"]');
@@ -139,19 +129,21 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
     }
   };
 
+  if (!isOpen) return null;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-gray-900/70 backdrop-blur-sm flex z-50"
+      className="fixed inset-0 bg-gray-900/70 backdrop-blur-sm flex items-start justify-center z-50"
     >
       <motion.div 
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        transition={{ type: "spring", duration: 0.3 }}
-        className="relative bg-white w-full max-w-5xl rounded-2xl shadow-2xl mx-auto min-h-screen"
+        transition={{ type: "spring", duration: 0.3, bounce: 0 }}
+        className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl mt-4"
       >
         <div className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-200/80">
           <div className="px-6 py-4 flex justify-between items-center">
@@ -181,8 +173,8 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 h-[calc(90vh-80px)]">
-          <div className="p-6 overflow-y-auto border-r border-gray-200/80">
+        <div className="grid grid-cols-1 lg:grid-cols-2">
+          <div className="p-6 border-r border-gray-200/80">
             <div className="bg-gradient-to-b from-gray-50 to-white rounded-xl p-4 mb-6 shadow-sm">
               <div className="aspect-video rounded-lg overflow-hidden shadow-md mb-4">
                 <img
@@ -218,10 +210,10 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
           </div>
 
           <motion.div 
-            className="bg-gradient-to-br from-gray-50 to-white p-6 overflow-y-auto"
+            className="bg-gradient-to-br from-gray-50 to-white p-6"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
+            transition={{ duration: 0.3, bounce: 0 }}
           >
             {seoAnalysis ? (
               <SEOAnalysisPanel analysis={seoAnalysis} />
