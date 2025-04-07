@@ -48,6 +48,7 @@ export function VideosTab() {
       refetchOnMount: false,
       refetchOnReconnect: false,
       refetchInterval: false,
+      retry: 1,
     }
   );
 

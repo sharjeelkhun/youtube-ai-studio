@@ -4,6 +4,7 @@ import { analyzeSEO } from '../services/ai';
 import { aiService } from '../services/ai/service';
 import { SEOAnalysisPanel } from './video/SEOAnalysisPanel';
 import toast from 'react-hot-toast';
+import { queryClient } from '../services/queryClient';
 
 export function SEOAnalyzer() {
   const [title, setTitle] = useState('');
@@ -31,6 +32,10 @@ export function SEOAnalyzer() {
         tags.split(',').map((tag) => tag.trim()).filter(Boolean)
       );
       setAnalysis(result);
+      
+      // Cache the result
+      queryClient.setQueryData(['seo-analysis', title + description], result);
+      
       toast.success('Analysis completed successfully!');
     } catch (error: any) {
       if (error.message.includes('Rate limit')) {
