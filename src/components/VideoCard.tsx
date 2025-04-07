@@ -60,8 +60,12 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       return null;
     },
     {
-      staleTime: 12 * 60 * 60 * 1000,
-      cacheTime: 24 * 60 * 60 * 1000,
+      staleTime: Infinity,
+      cacheTime: Infinity,
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+      refetchInterval: false,
     }
   );
 

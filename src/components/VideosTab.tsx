@@ -45,9 +45,9 @@ export function VideosTab() {
       staleTime: Infinity, // Never consider data stale automatically
       cacheTime: Infinity, // Keep data cached indefinitely
       refetchOnWindowFocus: false,
-      refetchOnMount: true,
+      refetchOnMount: false,
       refetchOnReconnect: false,
-      retry: 1,
+      refetchInterval: false,
     }
   );
 
