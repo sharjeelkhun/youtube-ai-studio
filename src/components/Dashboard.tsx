@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { getChannelVideos } from '../services/youtube';
 import { getChannelAnalytics } from '../services/analytics';
@@ -6,15 +6,16 @@ import { useQuery } from 'react-query';
 import { Loader2, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, Title, AreaChart, DonutChart, BarList } from '@tremor/react';
+import { safeNumber, safeDate, transformAnalyticsItem } from '../utils/dataTransforms';
 
 interface AnalyticsData {
   date: string;
   title: string;
   views: number;
   likes: number;
-  comments: number;
-  subscribers: number;
-  engagement: number;
+  comments?: number;
+  subscribers?: number;
+  engagement?: number;
 }
 
 interface Analytics {
@@ -43,33 +44,50 @@ const isValidAnalytics = (data: any): data is ChannelAnalyticsResponse => {
     typeof data.engagementRate === 'number';
 };
 
-export function Dashboard() {
-  const { accessToken, isAuthenticated } = useAuthStore();
-  const [timeRange, setTimeRange] = useState('6m');
+// Add safe data filtering helper
+const isValidDate = (date: string) => {
+  const parsed = new Date(date);
+  return !isNaN(parsed.getTime());
+};
 
+export function Dashboard() {
+  const { isAuthenticated, accessToken } = useAuthStore();
+  const [timeRange, setTimeRange] = useState('3m');
+
+  // Videos query with better error handling
   const { data: videos, isLoading: isLoadingVideos, error: videosError } = useQuery(
-    ['videos', accessToken],
-    () => getChannelVideos(accessToken!),
+    ['videos'],
+    async () => {
+      try {
+        if (!accessToken) throw new Error('Access token required');
+        const response = await getChannelVideos(accessToken);
+        if (!response?.length) {
+          throw new Error('No video data received');
+        }
+        return response;
+      } catch (error) {
+        console.error('Videos fetch error:', error);
+        throw error;
+      }
+    },
     {
-      enabled: !!accessToken,
-      staleTime: 30 * 60 * 1000,
-      cacheTime: 60 * 60 * 1000,
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false
+      enabled: Boolean(accessToken),
+      staleTime: 5 * 60 * 1000,
+      retry: 2
     }
   );
 
-  const { data: analytics, isLoading: isLoadingAnalytics, error: analyticsError } = useQuery<ChannelAnalyticsResponse>(
-    ['analytics', videos, timeRange],
+  // Analytics query with better error handling
+  const { data: analytics, isLoading: isLoadingAnalytics, error: analyticsError } = useQuery(
+    ['analytics', timeRange],
     async () => {
       try {
-        if (!accessToken || !videos) {
-          throw new Error('Missing required data');
-        }
+        if (!accessToken) throw new Error('Access token required');
+        if (!videos) throw new Error('Videos data required');
+        
         const response = await getChannelAnalytics(accessToken, videos, timeRange);
-        if (!isValidAnalytics(response)) {
-          throw new Error('Invalid analytics data format');
+        if (!response || !isValidAnalytics(response)) {
+          throw new Error('Invalid analytics data structure');
         }
         return response;
       } catch (error) {
@@ -80,33 +98,101 @@ export function Dashboard() {
     {
       enabled: Boolean(accessToken && videos),
       staleTime: 30 * 60 * 1000,
-      cacheTime: 60 * 60 * 1000,
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
+      retry: 2
     }
   );
 
-  const processedAnalytics = React.useMemo(() => {
-    if (!analytics || !isValidAnalytics(analytics)) return null;
-    
-    const { totalViews, totalLikes, totalSubscribers, engagementRate, analyticsData } = analytics;
+  // Process analytics with safe transformations
+  const processedAnalytics = useMemo(() => {
+    if (!analytics?.analyticsData) return null;
     
     return {
-      totalViews,
-      totalLikes,
-      totalSubscribers,
-      engagementRate,
-      analyticsData: analyticsData.map(item => ({
-        ...item,
-        views: item.views || 0,
-        likes: item.likes || 0,
-        comments: item.comments || 0,
-        subscribers: item.subscribers || 0,
-        engagement: item.engagement || 0
-      }))
+      totalViews: safeNumber(analytics.totalViews),
+      totalLikes: safeNumber(analytics.totalLikes),
+      totalSubscribers: safeNumber(analytics.totalSubscribers),
+      engagementRate: safeNumber(analytics.engagementRate),
+      analyticsData: analytics.analyticsData.map(transformAnalyticsItem)
     };
   }, [analytics]);
+
+  // Update preparedData memo with better error handling
+  const preparedData = useMemo(() => {
+    if (!processedAnalytics?.analyticsData?.length) {
+      return {
+        chartData: [],
+        topVideos: [],
+        latestData: null,
+        previousData: null
+      };
+    }
+
+    try {
+      // Filter and sort data more safely
+      const sortedData = [...processedAnalytics.analyticsData]
+        .filter(item => item.date && isValidDate(item.date))
+        .sort((a, b) => {
+          if (!a.date || !b.date) return 0;
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        })
+        .map(item => ({
+          ...item,
+          views: safeNumber(item.views),
+          likes: safeNumber(item.likes),
+          comments: safeNumber(item.comments),
+          subscribers: safeNumber(item.subscribers),
+          engagement: safeNumber(item.engagement),
+          date: new Date(item.date).toISOString()
+        }));
+
+      if (!sortedData.length) {
+        throw new Error('No valid data after filtering');
+      }
+
+      return {
+        chartData: [...sortedData].reverse().map(item => ({
+          date: item.date,
+          views: item.views,
+          likes: item.likes
+        })),
+        topVideos: sortedData.slice(0, 5).map(item => ({
+          name: item.title || 'Untitled',
+          value: item.views
+        })),
+        latestData: sortedData[0],
+        previousData: sortedData[1] || sortedData[0] // Fallback to latest if no previous
+      };
+    } catch (error) {
+      console.error('Error preparing chart data:', error);
+      return {
+        chartData: [],
+        topVideos: [],
+        latestData: null,
+        previousData: null
+      };
+    }
+  }, [processedAnalytics]);
+
+  // Calculate metrics with null safety
+  const metrics = useMemo(() => {
+    const { latestData, previousData } = preparedData;
+    if (!latestData || !previousData) return null;
+
+    const calculateChange = (current: number | undefined, previous: number | undefined): number => {
+      const curr = Number(current) || 0;
+      const prev = Number(previous) || 0;
+      if (!prev) return 0;
+      
+      const change = ((curr - prev) / prev) * 100;
+      return Number.isFinite(change) ? Number(change.toFixed(1)) : 0;
+    };
+
+    return {
+      subscriberGrowth: calculateChange(latestData.subscribers, previousData.subscribers),
+      viewsGrowth: calculateChange(latestData.views, previousData.views),
+      likesGrowth: calculateChange(latestData.likes, previousData.likes),
+      engagementGrowth: calculateChange(latestData.engagement, previousData.engagement)
+    };
+  }, [preparedData]);
 
   if (!isAuthenticated) {
     return (
@@ -139,69 +225,6 @@ export function Dashboard() {
       </div>
     );
   }
-
-  const preparedData = React.useMemo(() => {
-    const data = processedAnalytics?.analyticsData ?? [];
-    
-    if (!data.length) {
-      return {
-        chartData: [],
-        topVideos: [],
-        latestData: null,
-        previousData: null
-      };
-    }
-
-    const sortedData = [...data].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-
-    return {
-      chartData: sortedData.map(item => ({
-        date: new Date(item.date).toLocaleDateString(),
-        views: item.views ?? 0,
-        likes: item.likes ?? 0
-      })).reverse(),
-      topVideos: sortedData
-        .slice(0, 5)
-        .map(item => ({
-          name: item.title || 'Untitled',
-          value: item.views ?? 0
-        })),
-      latestData: sortedData[0] ?? null,
-      previousData: sortedData[1] ?? null
-    };
-  }, [processedAnalytics]);
-
-  const metrics = React.useMemo(() => {
-    const { latestData, previousData } = preparedData;
-    if (!latestData || !previousData) return null;
-
-    const calculateChange = (current: number, previous: number) => {
-      if (!previous) return 0;
-      const change = ((current - previous) / previous) * 100;
-      return Number.isFinite(change) ? Number(change.toFixed(1)) : 0;
-    };
-
-    return {
-      subscriberGrowth: calculateChange(
-        latestData.subscribers ?? 0,
-        previousData.subscribers ?? 0
-      ),
-      viewsGrowth: calculateChange(
-        latestData.views ?? 0,
-        previousData.views ?? 0
-      ),
-      likesGrowth: calculateChange(
-        latestData.likes ?? 0,
-        previousData.likes ?? 0
-      ),
-      engagementGrowth: calculateChange(
-        latestData.engagement ?? 0,
-        previousData.engagement ?? 0
-      )
-    };
-  }, [preparedData]);
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
