@@ -22,29 +22,22 @@ export const queryClient = new QueryClient({
       logger.query(`Success: ${JSON.stringify(query.queryKey)}`);
     },
     onStale: (query) => {
-      logger.cache(`Query became stale: ${JSON.stringify(query.queryKey}`);
+      logger.cache(`Query became stale: ${JSON.stringify(query.queryKey)}`);
+    },
+    notify: (event) => {
+      if (event.type === 'queryUpdated') {
+        logger.cache('Query cache updated', {
+          key: event.query.queryKey,
+          state: event.query.state.status,
+          isStale: event.query.isStale(),
+          lastUpdated: new Date(event.query.state.dataUpdatedAt).toISOString()
+        });
+      }
     }
   }
 });
 
-// Add detailed cache monitoring
-queryClient.getQueryCache().subscribe((event) => {
-  if (event?.type === 'queryUpdated') {
-    logger.cache('Query cache updated', {
-      key: event.query.queryKey,
-      state: event.query.state.status,
-      isStale: event.query.isStale(),
-      lastUpdated: new Date(event.query.state.dataUpdatedAt).toISOString(),
-      observers: event.query.getObserversCount()
-    });
-  }
-});
-
-// Global instance
-if (typeof window !== 'undefined') {
-  // @ts-ignore
-  if (!window.__QUERY_CLIENT__) {
-    // @ts-ignore
-    window.__QUERY_CLIENT__ = queryClient;
-  }
+// Global instance guard
+if (typeof window !== 'undefined' && !window.__QUERY_CLIENT__) {
+  window.__QUERY_CLIENT__ = queryClient;
 }
