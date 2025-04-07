@@ -42,10 +42,11 @@ export function VideosTab() {
     },
     {
       enabled: !!accessToken,
-      staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-      cacheTime: 30 * 60 * 1000, // Cache for 30 minutes
+      staleTime: Infinity, // Never consider data stale automatically
+      cacheTime: Infinity, // Keep data cached indefinitely
       refetchOnWindowFocus: false,
       refetchOnMount: false,
+      refetchOnReconnect: false,
       retry: 1
     }
   );
@@ -128,9 +129,8 @@ export function VideosTab() {
           video={selectedVideo}
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
-          onUpdate={() => {
-            // Only refetch when explicitly called after successful update
-            refetch();
+          onUpdate={async () => {
+            await refetch(); // Wait for refetch to complete
           }}
         />
       )}
