@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Wand2, Loader2 } from 'lucide-react';
 import { updateVideoDetails } from '../services/videoEditor';
 import { useAuthStore } from '../store/authStore';
@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { refreshSession } from '../services/auth';
 import { format } from 'date-fns';
 import { useSEOStore } from '../store/seoStore';
+import { motion } from 'framer-motion';
 
 interface VideoEditModalProps {
   video: VideoData;
@@ -32,28 +33,32 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
 
   const videoForm = useRef<HTMLFormElement>(null);
 
-  // Reset form data when video changes
+  // Initialize SEO analysis when modal opens
   useEffect(() => {
-    setFormData({
-      title: video.title,
-      description: video.description,
-      tags: video.tags
-    });
-  }, [video]);
-
-  useEffect(() => {
-    const analyzeSEOScore = async () => {
-      try {
-        const analysis = await analyzeSEO(formData.title, formData.description, formData.tags);
-        setSeoAnalysis(analysis);
-        // Store the new score
-        useSEOStore.getState().setScore(video.id, analysis);
-      } catch (error) {
-        console.error('Error analyzing SEO:', error);
-      }
-    };
-    analyzeSEOScore();
-  }, [formData, video.id]);
+    if (isOpen) {
+      setFormData({
+        title: video.title,
+        description: video.description,
+        tags: video.tags
+      });
+      
+      // Immediately start SEO analysis
+      const initAnalysis = async () => {
+        try {
+          const analysis = await analyzeSEO(video.title, video.description, video.tags);
+          if (analysis) {
+            setSeoAnalysis(analysis);
+            useSEOStore.getState().setScore(video.id, analysis);
+          }
+        } catch (error) {
+          console.error('Error analyzing SEO:', error);
+          // Don't show error toast here since we're auto-loading
+        }
+      };
+      
+      initAnalysis();
+    }
+  }, [isOpen, video]);
 
   if (!isOpen) return null;
 
@@ -66,7 +71,6 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
     setIsLoading(true);
     try {
       await updateVideoDetails(video.id, accessToken, data);
-      // Update local form data
       setFormData(data);
       onUpdate();
       toast.success('Video details updated successfully');
@@ -74,6 +78,7 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
     } catch (error: any) {
       console.error('Failed to update video:', error);
       toast.error(error.message || 'Failed to update video details');
+      // Don't close modal on error
     } finally {
       setIsLoading(false);
     }
@@ -135,16 +140,29 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        <div className="flex justify-between items-center p-6 border-b">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-semibold text-gray-900">Edit Video Details</h2>
-            <div className="flex items-center gap-2">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-gray-900/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
+      <motion.div 
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ type: "spring", duration: 0.3 }}
+        className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden"
+      >
+        <div className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-200/80">
+          <div className="px-6 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
+                Edit Video
+              </h2>
               <button
                 onClick={handleOptimize}
                 disabled={isOptimizing}
-                className="flex items-center gap-2 px-4 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50"
               >
                 {isOptimizing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -154,30 +172,38 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
                 {isOptimizing ? 'Optimizing...' : 'AI Optimize'}
               </button>
             </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 h-[calc(90vh-80px)]">
-          <div className="p-6 overflow-y-auto border-r">
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <div className="aspect-video rounded-lg overflow-hidden shadow-sm mb-4">
+          <div className="p-6 overflow-y-auto border-r border-gray-200/80">
+            <div className="bg-gradient-to-b from-gray-50 to-white rounded-xl p-4 mb-6 shadow-sm">
+              <div className="aspect-video rounded-lg overflow-hidden shadow-md mb-4">
                 <img
                   src={video.thumbnail}
                   alt={video.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300"
                 />
               </div>
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <span>{format(new Date(video.uploadDate), 'MMM d, yyyy')}</span>
-                <div className="flex items-center gap-4">
-                  <span>{parseInt(video.views).toLocaleString()} views</span>
-                  <span>{parseInt(video.likes).toLocaleString()} likes</span>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600 font-medium">
+                  {format(new Date(video.uploadDate), 'MMMM d, yyyy')}
+                </span>
+                <div className="flex items-center gap-4 text-gray-600">
+                  <div className="flex items-center gap-1">
+                    <span>{parseInt(video.views).toLocaleString()}</span>
+                    <span className="text-gray-400">views</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span>{parseInt(video.likes).toLocaleString()}</span>
+                    <span className="text-gray-400">likes</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -191,11 +217,23 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
             />
           </div>
 
-          <div className="p-6 overflow-y-auto bg-gray-50">
-            {seoAnalysis && <SEOAnalysisPanel analysis={seoAnalysis} />}
-          </div>
+          <motion.div 
+            className="bg-gradient-to-br from-gray-50 to-white p-6 overflow-y-auto"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+          >
+            {seoAnalysis ? (
+              <SEOAnalysisPanel analysis={seoAnalysis} />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
+                <p className="text-gray-500 text-sm">Analyzing video content...</p>
+              </div>
+            )}
+          </motion.div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
