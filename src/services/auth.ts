@@ -24,7 +24,9 @@ export function initiateAuth() {
   authUrl.searchParams.append('response_type', 'token');
   authUrl.searchParams.append('scope', YOUTUBE_SCOPES);
   authUrl.searchParams.append('include_granted_scopes', 'true');
-  authUrl.searchParams.append('prompt', 'consent');
+  // Remove offline access as we're using implicit flow
+  // authUrl.searchParams.append('access_type', 'offline');
+  authUrl.searchParams.append('prompt', 'select_account consent');
 
   window.location.href = authUrl.toString();
 }

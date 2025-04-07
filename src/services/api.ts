@@ -1,5 +1,6 @@
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
+import { initiateAuth } from './auth';
 
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
 const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -31,13 +32,18 @@ export async function refreshToken() {
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}, accessToken?: string) {
   if (!accessToken) {
+    toast.error('Authentication required');
+    initiateAuth();
     throw new Error('Access token is required');
   }
 
   const headers = new Headers(options.headers);
   headers.set('Authorization', `Bearer ${accessToken}`);
   headers.set('Accept', 'application/json');
-  headers.set('Content-Type', 'application/json');
+  
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
 
   const config = {
     ...options,
@@ -49,23 +55,21 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}, acce
     const response = await fetch(url, config);
 
     if (response.status === 401) {
-      // Token expired or invalid
       toast.error('Session expired. Please sign in again.');
       useAuthStore.getState().logout();
-      await refreshToken();
-      return;
+      initiateAuth();
+      throw new Error('Authentication expired');
     }
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('YouTube API Error:', errorData);
+      const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error occurred' } }));
       throw new Error(errorData.error?.message || 'Failed to fetch data from YouTube');
     }
 
     return response.json();
   } catch (error: any) {
     console.error('API request failed:', error);
-    throw new Error(error.message || 'Failed to fetch data');
+    throw error;
   }
 }
 
