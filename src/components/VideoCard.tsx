@@ -1,6 +1,6 @@
 import React from 'react';
 import { VideoData } from '../types/youtube';
-import { Edit2, Wand2, ExternalLink } from 'lucide-react';
+import { Edit2, Wand2, ExternalLink, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { SEOScoreIndicator } from './video/SEOScoreIndicator';
@@ -168,6 +168,19 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
     }
   }, [cohereKey, video.id]);
 
+  const handleAnalyzeSEO = async () => {
+    try {
+      const analysis = await analyzeSEO(video.title, video.description, video.tags);
+      if (analysis) {
+        useSEOStore.getState().setScore(video.id, analysis);
+        await queryClient.invalidateQueries(['seo-score', video.id]);
+        toast.success('SEO Analysis completed!');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to analyze SEO');
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -192,7 +205,15 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
           <div className="absolute top-2 right-2">
             <SEOScoreIndicator score={seoScore} size="sm" />
           </div>
-        ) : null}
+        ) : (
+          <button
+            onClick={handleAnalyzeSEO}
+            className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Analyze SEO
+          </button>
+        )}
       </div>
 
       <div className="p-4">
