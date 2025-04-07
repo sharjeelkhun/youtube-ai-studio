@@ -34,20 +34,8 @@ export function VideosTab() {
       if (!accessToken) return null;
       try {
         const videos = await getChannelVideos(accessToken);
-        
-        // Process videos in batches but don't auto-analyze SEO
-        if (videos) {
-          const seoStore = useSEOStore.getState();
-          // Only analyze videos that don't have scores yet, but don't do it automatically
-          videos.forEach(video => {
-            if (!seoStore.getScore(video.id)) {
-              console.log('Video needs SEO analysis:', video.id);
-            }
-          });
-        }
-        
         return videos;
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching videos:', error);
         throw error;
       }
@@ -58,17 +46,7 @@ export function VideosTab() {
       cacheTime: 30 * 60 * 1000, // Cache for 30 minutes
       refetchOnWindowFocus: false,
       refetchOnMount: false,
-      retry: 1, // Only retry once on failure
-      retryDelay: 1000, // Wait 1 second before retry
-      onError: (error: any) => {
-        const message = error?.message || 'Failed to load videos';
-        if (message.includes('401') || message.toLowerCase().includes('unauthorized')) {
-          refreshSession();
-        } else {
-          toast.error(message);
-        }
-        console.error('Videos fetch error:', error);
-      }
+      retry: 1
     }
   );
 
@@ -150,7 +128,10 @@ export function VideosTab() {
           video={selectedVideo}
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
-          onUpdate={refetch}
+          onUpdate={() => {
+            // Only refetch when explicitly called after successful update
+            refetch();
+          }}
         />
       )}
 

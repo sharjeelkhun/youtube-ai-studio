@@ -67,8 +67,10 @@ export function VideoEditModal({ video, isOpen, onClose, onUpdate }: VideoEditMo
     try {
       await updateVideoDetails(video.id, accessToken, data);
       setFormData(data);
-      onUpdate();
       toast.success('Video details updated successfully');
+      // Only call onUpdate and close modal after successful update
+      onUpdate();
+      onClose();
     } catch (error: any) {
       console.error('Failed to update video:', error);
       toast.error(error.message || 'Failed to update video details');
