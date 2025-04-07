@@ -119,36 +119,39 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
     async () => {
       if (!cohereKey) return null;
       
+      // Try to get cached score first
       const cachedScore = storedScore as SEOAnalysis | null;
       if (cachedScore?.timestamp) {
         const scoreAge = Date.now() - cachedScore.timestamp;
         if (scoreAge < 24 * 60 * 60 * 1000) {
-          // Convert score to percentage if needed
+          // Convert decimal scores to percentages if needed
           return cachedScore.score > 1 ? cachedScore.score : cachedScore.score * 100;
         }
       }
 
+      // If no valid cached score, analyze the video
       try {
+        await new Promise(resolve => setTimeout(resolve, batchIndex.current * 1000)); // Stagger requests
         const analysis = await analyzeSEO(video.title, video.description, video.tags);
         if (analysis) {
           useSEOStore.getState().setScore(video.id, analysis);
-          return analysis.score;
+          return analysis.score > 1 ? analysis.score : analysis.score * 100;
         }
-        return null;
       } catch (error: any) {
         if (error.message?.includes('Rate limit')) {
-          // Return stored score if available when rate limited
-          return storedScore?.score || null;
+          return storedScore?.score ? (storedScore.score > 1 ? storedScore.score : storedScore.score * 100) : 50;
         }
-        throw error;
+        console.error(`Error analyzing video ${video.id}:`, error);
+        return 50; // Return default score on error
       }
+      return 50; // Default score if analysis fails
     },
     {
       enabled: !!cohereKey && !!video.title,
       retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
-      staleTime: 12 * 60 * 60 * 1000, // 12 hours
-      cacheTime: 24 * 60 * 60 * 1000, // 24 hours
+      staleTime: 12 * 60 * 60 * 1000,
+      cacheTime: 24 * 60 * 60 * 1000,
     }
   );
 
