@@ -124,36 +124,42 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       if (cachedScore?.timestamp) {
         const scoreAge = Date.now() - cachedScore.timestamp;
         if (scoreAge < 24 * 60 * 60 * 1000) {
-          // Convert decimal scores to percentages if needed
-          return cachedScore.score > 1 ? cachedScore.score : cachedScore.score * 100;
+          return normalizeScore(cachedScore.score);
         }
       }
 
-      // If no valid cached score, analyze the video
+      // Add small random delay to avoid rate limits
+      const delay = Math.random() * 2000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+
       try {
-        await new Promise(resolve => setTimeout(resolve, batchIndex.current * 1000)); // Stagger requests
         const analysis = await analyzeSEO(video.title, video.description, video.tags);
         if (analysis) {
           useSEOStore.getState().setScore(video.id, analysis);
-          return analysis.score > 1 ? analysis.score : analysis.score * 100;
+          return normalizeScore(analysis.score);
         }
       } catch (error: any) {
-        if (error.message?.includes('Rate limit')) {
-          return storedScore?.score ? (storedScore.score > 1 ? storedScore.score : storedScore.score * 100) : 50;
-        }
         console.error(`Error analyzing video ${video.id}:`, error);
-        return 50; // Return default score on error
+        if (error.message?.includes('Rate limit')) {
+          // Try alternative score calculation
+          return calculateVideoScore(video);
+        }
       }
-      return 50; // Default score if analysis fails
+      return 50; // Default score
     },
     {
       enabled: !!cohereKey && !!video.title,
-      retry: 3,
-      retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
-      staleTime: 12 * 60 * 60 * 1000,
-      cacheTime: 24 * 60 * 60 * 1000,
+      retry: 2,
+      retryDelay: 1000,
+      staleTime: 12 * 60 * 60 * 1000, // 12 hours
+      cacheTime: 24 * 60 * 60 * 1000, // 24 hours
     }
   );
+
+  const normalizeScore = (score: number | null | undefined): number => {
+    if (score === null || score === undefined || isNaN(score)) return 50;
+    return score > 1 ? Math.round(score) : Math.round(score * 100);
+  };
 
   React.useEffect(() => {
     // Prefetch the next queries

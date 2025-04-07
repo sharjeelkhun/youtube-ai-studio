@@ -68,8 +68,10 @@ export function VideosTab() {
     },
     {
       enabled: !!accessToken,
-      staleTime: 5 * 60 * 1000,
-      cacheTime: 30 * 60 * 1000,
+      staleTime: Infinity, // Prevent automatic refetching
+      cacheTime: 24 * 60 * 60 * 1000, // Cache for 24 hours
+      refetchOnWindowFocus: false, // Disable refetch on window focus
+      refetchOnMount: false, // Disable refetch on mount
       retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
       onError: (error: any) => {
