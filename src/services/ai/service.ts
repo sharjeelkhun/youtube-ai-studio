@@ -193,7 +193,6 @@ class AIService {
   private normalizeSEOScores(analysis: SEOAnalysis): SEOAnalysis {
     const normalizeScore = (score: number | null): number => {
       if (score === null || isNaN(score)) return 50;
-      // Convert decimal scores to percentage and ensure within 0-100 range
       const normalizedScore = score < 1 ? score * 100 : score;
       return Math.min(Math.max(Math.round(normalizedScore), 0), 100);
     };
@@ -212,7 +211,8 @@ class AIService {
         score: normalizeScore(analysis.tagsAnalysis?.score),
         suggestions: analysis.tagsAnalysis?.suggestions ?? []
       },
-      overallSuggestions: Array.isArray(analysis.overallSuggestions) ? analysis.overallSuggestions : []
+      overallSuggestions: Array.isArray(analysis.overallSuggestions) ? analysis.overallSuggestions : [],
+      timestamp: Date.now()
     };
   }
 

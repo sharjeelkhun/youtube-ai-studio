@@ -45,6 +45,7 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const { getKey } = useAPIKeyStore();
   const cohereKey = getKey('cohere');
   const queryClient = useQueryClient();
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { data: seoScore, isLoading } = useQuery(
     ['seo-score', video.id],
@@ -53,8 +54,7 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       if (storedScore?.timestamp) {
         const scoreAge = Date.now() - storedScore.timestamp;
         if (scoreAge < 24 * 60 * 60 * 1000) {
-          // Use the actual AI analysis score instead of normalizing
-          return storedScore.score || 0;
+          return storedScore.score;
         }
       }
       return null;
@@ -67,19 +67,18 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
 
   const normalizeScore = (score: number | null | undefined): number => {
     if (score === null || score === undefined || isNaN(score)) return 50;
-    // Convert decimal scores to percentage
     return score < 1 ? score * 100 : score;
   };
 
   React.useEffect(() => {
-    // Prefetch the next queries
     if (cohereKey) {
       queryClient.prefetchQuery(['seo-score', video.id]);
     }
   }, [cohereKey, video.id]);
 
   const handleAnalyzeSEO = async () => {
-    if (isLoading) return;
+    if (isAnalyzing) return;
+    setIsAnalyzing(true);
     try {
       const analysis = await analyzeSEO(video.title, video.description, video.tags);
       if (analysis) {
@@ -89,6 +88,8 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to analyze SEO');
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 

@@ -14,21 +14,23 @@ export const useSEOStore = create<SEOStore>()(
     (set, get) => ({
       scores: {},
       setScore: (videoId, analysis) => {
+        // Ensure score is normalized before storing
+        const normalizedAnalysis = {
+          ...analysis,
+          score: Math.round(analysis.score < 1 ? analysis.score * 100 : analysis.score),
+          timestamp: Date.now()
+        };
+        
         set((state) => ({
           scores: {
             ...state.scores,
-            [videoId]: {
-              ...analysis,
-              timestamp: Date.now() // Add timestamp to track score age
-            }
-          },
+            [videoId]: normalizedAnalysis
+          }
         }));
-        // Store in localStorage as backup
+
+        // Store in localStorage
         try {
-          localStorage.setItem(`seo_score_${videoId}`, JSON.stringify({
-            ...analysis,
-            timestamp: Date.now()
-          }));
+          localStorage.setItem(`seo_score_${videoId}`, JSON.stringify(normalizedAnalysis));
         } catch (error) {
           console.error('Error storing SEO score:', error);
         }
