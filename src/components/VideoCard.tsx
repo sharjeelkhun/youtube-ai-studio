@@ -45,114 +45,23 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const { getKey } = useAPIKeyStore();
   const cohereKey = getKey('cohere');
   const queryClient = useQueryClient();
-  const storedScore = useSEOStore((state) => state.getScore(video.id));
-  const retryCountRef = React.useRef(0);
-  const batchIndex = React.useRef(Math.floor(Math.random() * BATCH_SIZE));
-
-  const calculateVideoScore = (data: any): number => {
-    if (!data) return 0; // Return 0 if no data
-
-    let titleScore = 0;
-    let descriptionScore = 0;
-    let tagsScore = 0;
-
-    // Title scoring (35%)
-    if (video.title) {
-      if (video.title.length >= 40 && video.title.length <= 70) titleScore += 35;
-      else if (video.title.length >= 20) titleScore += 20;
-      if (/^[A-Z]/.test(video.title)) titleScore += 15;
-      if (video.title.includes('|') || video.title.includes('-')) titleScore += 15;
-      if (/(how|why|what|when|top|best|\d+)/i.test(video.title)) titleScore += 15;
-      titleScore = Math.min(titleScore, 100);
-    }
-
-    // Description scoring (35%)
-    if (video.description) {
-      if (video.description.length >= 250) descriptionScore += 40;
-      else if (video.description.length >= 100) descriptionScore += 20;
-      if (video.description.includes('\n\n')) descriptionScore += 20;
-      if (/https?:\/\/[^\s]+/.test(video.description)) descriptionScore += 20;
-      if (video.description.toLowerCase().includes('subscribe') || 
-          video.description.toLowerCase().includes('follow')) descriptionScore += 20;
-      descriptionScore = Math.min(descriptionScore, 100);
-    }
-
-    // Tags scoring (30%)
-    if (video.tags && Array.isArray(video.tags)) {
-      if (video.tags.length >= 15) tagsScore += 40;
-      else if (video.tags.length >= 8) tagsScore += 25;
-      else if (video.tags.length >= 3) tagsScore += 15;
-      
-      // Check tag quality
-      const hasLongTags = video.tags.some(tag => tag.length > 15);
-      const hasShortTags = video.tags.some(tag => tag.length < 15);
-      if (hasLongTags && hasShortTags) tagsScore += 30;
-      
-      // Check for keyword variations
-      const keywordVariations = video.tags.filter(tag => 
-        video.title.toLowerCase().includes(tag.toLowerCase())
-      ).length;
-      if (keywordVariations >= 3) tagsScore += 30;
-      
-      tagsScore = Math.min(tagsScore, 100);
-    }
-
-    // Calculate weighted score
-    const finalScore = Math.round(
-      (titleScore * BASE_SCORES.TITLE_WEIGHT) +
-      (descriptionScore * BASE_SCORES.DESC_WEIGHT) +
-      (tagsScore * BASE_SCORES.TAGS_WEIGHT)
-    );
-
-    // Normalize between MIN and MAX scores
-    return Math.min(
-      Math.max(
-        Math.round(BASE_SCORES.MIN_SCORE + (finalScore * (BASE_SCORES.MAX_SCORE - BASE_SCORES.MIN_SCORE) / 100)),
-        BASE_SCORES.MIN_SCORE
-      ),
-      BASE_SCORES.MAX_SCORE
-    );
-  };
 
   const { data: seoScore, isLoading } = useQuery(
     ['seo-score', video.id],
     async () => {
-      if (!cohereKey) return null;
-      
-      // Try to get cached score first
-      const cachedScore = storedScore as SEOAnalysis | null;
-      if (cachedScore?.timestamp) {
-        const scoreAge = Date.now() - cachedScore.timestamp;
+      // Get stored score first
+      const storedScore = useSEOStore.getState().getScore(video.id);
+      if (storedScore?.timestamp) {
+        const scoreAge = Date.now() - storedScore.timestamp;
         if (scoreAge < 24 * 60 * 60 * 1000) {
-          return normalizeScore(cachedScore.score);
+          return normalizeScore(storedScore.score);
         }
       }
-
-      // Add small random delay to avoid rate limits
-      const delay = Math.random() * 2000;
-      await new Promise(resolve => setTimeout(resolve, delay));
-
-      try {
-        const analysis = await analyzeSEO(video.title, video.description, video.tags);
-        if (analysis) {
-          useSEOStore.getState().setScore(video.id, analysis);
-          return normalizeScore(analysis.score);
-        }
-      } catch (error: any) {
-        console.error(`Error analyzing video ${video.id}:`, error);
-        if (error.message?.includes('Rate limit')) {
-          // Try alternative score calculation
-          return calculateVideoScore(video);
-        }
-      }
-      return 50; // Default score
+      return null;
     },
     {
-      enabled: !!cohereKey && !!video.title,
-      retry: 2,
-      retryDelay: 1000,
-      staleTime: 12 * 60 * 60 * 1000, // 12 hours
-      cacheTime: 24 * 60 * 60 * 1000, // 24 hours
+      staleTime: 12 * 60 * 60 * 1000,
+      cacheTime: 24 * 60 * 60 * 1000,
     }
   );
 
@@ -172,10 +81,10 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
     try {
       const analysis = await analyzeSEO(video.title, video.description, video.tags);
       if (analysis) {
-        await useSEOStore.getState().setScore(video.id, analysis);
-        // Force immediate query refetch
-        await queryClient.invalidateQueries(['seo-score', video.id]);
-        await queryClient.refetchQueries(['seo-score', video.id]);
+        // Update store
+        useSEOStore.getState().setScore(video.id, analysis);
+        // Update query data immediately
+        queryClient.setQueryData(['seo-score', video.id], normalizeScore(analysis.score));
         toast.success('SEO Analysis completed!');
       }
     } catch (error: any) {
@@ -196,7 +105,7 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
           className="w-full aspect-video object-cover"
         />
         {!cohereKey ? (
-          <div className="absolute top-2 right-2 bg-black/20 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-1 text-sm text-white">
+          <div className="absolute top-2 right-2 bg-gray-100 rounded-lg px-3 py-1 text-sm text-gray-600">
             Configure AI in Settings
           </div>
         ) : isLoading ? (
@@ -206,28 +115,15 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
             </div>
           </div>
         ) : seoScore ? (
-          <motion.div 
-            initial={{ opacity: 0.6, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ scale: 1.1 }}
-            className="absolute top-2 right-2 group"
-          >
-            <div className="relative">
-              <SEOScoreIndicator score={seoScore} size="sm" />
-              <button
-                onClick={handleAnalyzeSEO}
-                className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm opacity-0 group-hover:opacity-100 rounded-full transition-all duration-200"
-              >
-                <Sparkles className="w-4 h-4 text-white" />
-              </button>
-            </div>
-          </motion.div>
+          <div className="absolute top-2 right-2">
+            <SEOScoreIndicator score={seoScore} size="sm" />
+          </div>
         ) : (
           <motion.button
             onClick={handleAnalyzeSEO}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="absolute top-2 right-2 bg-black/30 backdrop-blur-sm border border-white/20 hover:bg-black/40 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1.5 shadow-lg hover:shadow-xl"
+            className="absolute top-2 right-2 bg-black/40 backdrop-blur-md border border-white/50 hover:bg-black/60 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1.5 shadow-lg"
           >
             <Sparkles className="w-3.5 h-3.5" />
             Analyze SEO

@@ -36,7 +36,7 @@ export function SEOScoreIndicator({ score, size }: SEOScoreIndicatorProps) {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 80) return 'bg-green-500/30 text-green-50';
-  if (score >= 60) return 'bg-yellow-500/30 text-yellow-50';
-  return 'bg-red-500/30 text-red-50';
+  if (score >= 80) return 'bg-green-500 text-white';
+  if (score >= 60) return 'bg-yellow-500 text-white';
+  return 'bg-red-500 text-white';
 }
