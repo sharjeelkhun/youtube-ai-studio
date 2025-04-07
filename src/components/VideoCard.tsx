@@ -45,17 +45,16 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const { getKey } = useAPIKeyStore();
   const cohereKey = getKey('cohere');
   const queryClient = useQueryClient();
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { data: seoScore, isLoading } = useQuery(
     ['seo-score', video.id],
     async () => {
-      // Get stored score first
       const storedScore = useSEOStore.getState().getScore(video.id);
       if (storedScore?.timestamp) {
         const scoreAge = Date.now() - storedScore.timestamp;
         if (scoreAge < 24 * 60 * 60 * 1000) {
-          return normalizeScore(storedScore.score);
+          // Use the actual AI analysis score instead of normalizing
+          return storedScore.score || 0;
         }
       }
       return null;
@@ -66,11 +65,6 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
     }
   );
 
-  const normalizeScore = (score: number | null | undefined): number => {
-    if (score === null || score === undefined || isNaN(score)) return 50;
-    return score > 1 ? Math.round(score) : Math.round(score * 100);
-  };
-
   React.useEffect(() => {
     // Prefetch the next queries
     if (cohereKey) {
@@ -79,21 +73,16 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   }, [cohereKey, video.id]);
 
   const handleAnalyzeSEO = async () => {
-    if (isAnalyzing) return; // Prevent multiple clicks
-    setIsAnalyzing(true);
+    if (isLoading) return;
     try {
       const analysis = await analyzeSEO(video.title, video.description, video.tags);
       if (analysis) {
-        useSEOStore.getState().setScore(video.id, analysis);
-        queryClient.setQueryData(['seo-score', video.id], normalizeScore(analysis.score));
+        await useSEOStore.getState().setScore(video.id, analysis);
+        queryClient.setQueryData(['seo-score', video.id], analysis.score);
         toast.success('SEO Analysis completed!');
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to analyze SEO');
-      // Reset loading state if error occurs
-      queryClient.setQueryData(['seo-score', video.id], null);
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
@@ -113,7 +102,7 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
           <div className="absolute top-2 right-2 bg-gray-100 rounded-lg px-3 py-1 text-sm text-gray-600">
             Configure AI in Settings
           </div>
-        ) : isAnalyzing ? (
+        ) : isLoading ? (
           <div className="absolute top-2 right-2">
             <div className="animate-pulse backdrop-blur-sm p-1 rounded-full">
               <SEOScoreIndicator score={null} size="sm" />
@@ -126,13 +115,13 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
         ) : (
           <motion.button
             onClick={handleAnalyzeSEO}
-            disabled={isAnalyzing}
-            whileHover={!isAnalyzing ? { scale: 1.05 } : {}}
-            whileTap={!isAnalyzing ? { scale: 0.95 } : {}}
+            disabled={isLoading}
+            whileHover={!isLoading ? { scale: 1.05 } : {}}
+            whileTap={!isLoading ? { scale: 0.95 } : {}}
             className="absolute top-2 right-2 bg-black/40 backdrop-blur-md border border-white/50 hover:bg-black/60 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1.5 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            {isAnalyzing ? 'Analyzing...' : 'Analyze SEO'}
+            {isLoading ? 'Analyzing...' : 'Analyze SEO'}
           </motion.button>
         )}
       </div>

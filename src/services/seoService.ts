@@ -14,42 +14,49 @@ export async function analyzeSEO(title: string, description: string, tags: strin
     try {
       return await rateLimiter.execute(async () => {
         const cacheKey = `${title}-${description}-${tags.join(',')}`;
-        
-        // Check cache with validation
         const cached = seoCache.get(cacheKey);
         if (cached?.timestamp && Date.now() - cached.timestamp < 24 * 60 * 60 * 1000) {
           return cached;
         }
 
-        const result = await aiService.generateContent(`Analyze this YouTube video content for SEO optimization...`);
+        const result = await aiService.generateContent(`Analyze this YouTube video content for SEO optimization:
+Title: ${title}
+Description: ${description}
+Tags: ${tags.join(', ')}
+
+Provide a comprehensive SEO analysis with scores (0-100) and suggestions for:
+1. Overall SEO score
+2. Title optimization
+3. Description effectiveness
+4. Tag relevance and coverage
+5. Viewer engagement potential
+
+Format as JSON with scores and detailed suggestions.`);
         
         if (!result) {
           throw new Error('Failed to generate SEO analysis');
         }
 
+        // Parse and validate the AI response
         const analysis: SEOAnalysis = {
           ...DEFAULT_SEO_ANALYSIS,
-          score: 50, // Default score
-          titleAnalysis: {
-            score: 50,
-            suggestions: []
-          },
-          descriptionAnalysis: {
-            score: 50,
-            suggestions: []
-          },
-          tagsAnalysis: {
-            score: 50,
-            suggestions: []
-          },
+          score: 0,
           timestamp: Date.now()
         };
 
-        // Only cache valid analysis
-        if (analysis.score !== undefined) {
-          seoCache.set(cacheKey, analysis);
+        try {
+          const parsedResult = JSON.parse(result);
+          if (parsedResult.score) {
+            analysis.score = Math.min(Math.max(Math.round(parsedResult.score), 0), 100);
+            // Copy over other analysis sections
+            Object.assign(analysis, parsedResult);
+          }
+        } catch (e) {
+          console.error('Error parsing AI response:', e);
         }
 
+        // Cache the result
+        seoCache.set(cacheKey, analysis);
         return analysis;
       });
     } catch (error: any) {
