@@ -47,9 +47,16 @@ export function VideosTab() {
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
-      retry: 1
+      refetchInterval: false, // Disable periodic refetching
+      retry: 1,
     }
   );
+
+  const filteredVideos = React.useMemo(() => {
+    return videos?.filter(video =>
+      video.title.toLowerCase().includes(searchQuery.toLowerCase())
+    ) || [];
+  }, [videos, searchQuery]);
 
   if (!isAuthenticated) {
     return (
@@ -81,10 +88,6 @@ export function VideosTab() {
       </div>
     );
   }
-
-  const filteredVideos = videos?.filter(video =>
-    video.title.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
 
   return (
     <div className="space-y-6">
