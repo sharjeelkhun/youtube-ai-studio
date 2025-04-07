@@ -1,6 +1,5 @@
 import { QueryClient } from 'react-query';
 
-// Single source of truth for query configuration
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -9,13 +8,18 @@ export const queryClient = new QueryClient({
       refetchOnMount: false,
       refetchOnReconnect: false,
       refetchInterval: false,
-      staleTime: 30 * 60 * 1000, // 30 minutes
-      cacheTime: 60 * 60 * 1000, // 1 hour
+      staleTime: 24 * 60 * 60 * 1000, // 24 hours
+      cacheTime: 7 * 24 * 60 * 60 * 1000, // 7 days
+      suspense: false,
     },
   },
 });
 
-// Prevent multiple instances
+// Global instance
 if (typeof window !== 'undefined') {
-  (window as any).__QUERY_CLIENT__ = queryClient;
+  // @ts-ignore
+  if (!window.__QUERY_CLIENT__) {
+    // @ts-ignore
+    window.__QUERY_CLIENT__ = queryClient;
+  }
 }

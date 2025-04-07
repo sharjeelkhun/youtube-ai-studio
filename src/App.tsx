@@ -19,8 +19,11 @@ function App() {
   const { setAuth } = useAuthStore();
 
   useEffect(() => {
-    // Restore session on app start
-    checkStoredSession();
+    // Initial session check
+    const wasRestored = checkStoredSession();
+    if (!wasRestored) {
+      queryClient.clear(); // Clear all queries if session restore fails
+    }
 
     // Handle OAuth callback
     const authResult = handleAuthCallback();
@@ -29,15 +32,14 @@ function App() {
       window.location.hash = '';
     }
 
-    // Check session less frequently and only invalidate when needed
+    // Periodic session check - reduced frequency
     const checkSession = setInterval(() => {
       const wasRefreshed = refreshSession();
       if (!wasRefreshed) {
-        // Only invalidate auth-dependent queries if session expired
-        queryClient.invalidateQueries('videos');
-        queryClient.invalidateQueries('analytics');
+        queryClient.invalidateQueries(['videos']);
+        queryClient.invalidateQueries(['analytics']);
       }
-    }, 5 * 60 * 1000); // Check every 5 minutes
+    }, 10 * 60 * 1000); // Check every 10 minutes
 
     return () => clearInterval(checkSession);
   }, [setAuth]);
