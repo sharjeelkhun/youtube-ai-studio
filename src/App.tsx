@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import React, { useEffect, useCallback } from 'react';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
@@ -16,9 +16,23 @@ const router = createBrowserRouter([
   },
 ]);
 
+// Constants
+const SESSION_CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes
+
 function App() {
   const { setAuth } = useAuthStore();
-  const SESSION_CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes
+
+  // Memoize session check function
+  const checkSession = useCallback(() => {
+    logger.auth('Periodic session check started');
+    const wasRefreshed = refreshSession();
+    
+    if (!wasRefreshed) {
+      logger.auth('Session refresh failed - invalidating queries');
+      queryClient.invalidateQueries(['videos']);
+      queryClient.invalidateQueries(['analytics']);
+    }
+  }, []);
 
   useEffect(() => {
     logger.auth('App mounted');
@@ -42,24 +56,12 @@ function App() {
       window.location.hash = '';
     }
 
-    // Session check function
-    const checkSession = () => {
-      logger.auth('Periodic session check started');
-      const wasRefreshed = refreshSession();
-      
-      if (!wasRefreshed) {
-        logger.auth('Session refresh failed - invalidating queries');
-        queryClient.invalidateQueries(['videos']);
-        queryClient.invalidateQueries(['analytics']);
-      }
-    };
-
-    // Set up interval
+    // Set up session check interval
     const intervalId = setInterval(checkSession, SESSION_CHECK_INTERVAL);
 
-    // Cleanup
+    // Cleanup interval on unmount
     return () => clearInterval(intervalId);
-  }, [setAuth]);
+  }, [setAuth, checkSession]);
 
   return (
     <QueryClientProvider client={queryClient}>
