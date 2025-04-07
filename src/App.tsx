@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { QueryClientProvider } from 'react-query';
@@ -19,6 +19,9 @@ const router = createBrowserRouter([
 function App() {
   const { setAuth } = useAuthStore();
 
+  // Memoize session check interval
+  const SESSION_CHECK_INTERVAL = useMemo(() => 30 * 60 * 1000, []); // 30 minutes
+
   useEffect(() => {
     logger.auth('App mounted');
     
@@ -27,7 +30,7 @@ function App() {
     logger.auth('Session restored', { success: wasRestored });
     
     if (!wasRestored) {
-      console.log('[App] Clearing queries due to failed session restore');
+      logger.auth('Clearing queries - session not restored');
       queryClient.clear();
     }
 
@@ -41,19 +44,31 @@ function App() {
       window.location.hash = '';
     }
 
-    // Session check interval
-    const checkSession = setInterval(() => {
+    // Session check interval with debounce
+    let sessionCheckTimeout: NodeJS.Timeout;
+    const checkSession = () => {
       logger.auth('Periodic session check started');
       const wasRefreshed = refreshSession();
+      
       if (!wasRefreshed) {
         logger.auth('Session refresh failed - invalidating queries');
         queryClient.invalidateQueries(['videos']);
         queryClient.invalidateQueries(['analytics']);
       }
-    }, 10 * 60 * 1000);
 
-    return () => clearInterval(checkSession);
-  }, [setAuth]);
+      // Schedule next check
+      sessionCheckTimeout = setTimeout(checkSession, SESSION_CHECK_INTERVAL);
+    };
+
+    // Start first check
+    sessionCheckTimeout = setTimeout(checkSession, SESSION_CHECK_INTERVAL);
+
+    return () => {
+      if (sessionCheckTimeout) {
+        clearTimeout(sessionCheckTimeout);
+      }
+    };
+  }, [setAuth, SESSION_CHECK_INTERVAL]);
 
   return (
     <QueryClientProvider client={queryClient}>

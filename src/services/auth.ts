@@ -10,6 +10,9 @@ const YOUTUBE_SCOPES = [
 const TOKEN_STORAGE_KEY = 'youtube_auth_token';
 const EXPIRY_STORAGE_KEY = 'youtube_token_expiry';
 
+let lastRefreshTime = 0;
+const MIN_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
 export function initiateAuth() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   if (!clientId) {
@@ -58,6 +61,14 @@ export function checkTokenExpiry(expiryTime: number) {
 }
 
 export function refreshSession() {
+  const now = Date.now();
+  
+  // Prevent too frequent refreshes
+  if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
+    logger.auth('Skipping refresh - too soon');
+    return true;
+  }
+
   logger.auth('Starting session refresh check');
   const { accessToken, tokenExpiryTime, logout, setAuth } = useAuthStore.getState();
   
@@ -69,19 +80,21 @@ export function refreshSession() {
     const expiryTime = parseInt(storedExpiry);
     logger.auth('Found stored token', { expiryTime: new Date(expiryTime).toISOString() });
     
-    if (Date.now() < expiryTime) {
+    if (now < expiryTime) {
       logger.auth('Using stored token');
       setAuth(storedToken, expiryTime);
+      lastRefreshTime = now;
       return true;
     }
   }
 
-  if (accessToken && tokenExpiryTime && Date.now() < tokenExpiryTime) {
-    console.log('[Session Check] Using current token');
+  if (accessToken && tokenExpiryTime && now < tokenExpiryTime) {
+    logger.auth('Using current token');
+    lastRefreshTime = now;
     return true;
   }
 
-  console.log('[Session Check] Session expired, logging out');
+  logger.auth('Session expired, logging out');
   localStorage.removeItem(TOKEN_STORAGE_KEY);
   localStorage.removeItem(EXPIRY_STORAGE_KEY);
   logout();
