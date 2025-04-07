@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/authStore';
 import { handleAuthCallback, refreshSession, checkStoredSession } from './services/auth';
+import { VideoProvider } from './contexts/VideoContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,17 +48,19 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <Toaster 
-        position="top-right"
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-          },
-        }}
-      />
+      <VideoProvider>
+        <RouterProvider router={router} />
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+          }}
+        />
+      </VideoProvider>
     </QueryClientProvider>
   );
 }

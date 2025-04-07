@@ -10,10 +10,11 @@ import { VideoData } from '../types/youtube';
 import { Loader2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { refreshSession } from '../services/auth';
+import { useVideoContext } from '../contexts/VideoContext';
 
 export function VideosTab() {
   const { accessToken, isAuthenticated } = useAuthStore();
-  const [searchQuery, setSearchQuery] = useState('');
+  const { searchQuery, setSearchQuery, filteredVideos, setAllVideos } = useVideoContext();
   const [selectedVideo, setSelectedVideo] = useState<VideoData | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSuggestionsModal, setShowSuggestionsModal] = useState(false);
@@ -27,13 +28,14 @@ export function VideosTab() {
     }
   }, [isAuthenticated]);
 
-  const { data: videos, isLoading, refetch, error } = useQuery(
+  const { isLoading, refetch, error } = useQuery(
     ['videos', accessToken],
     async () => {
       if (!refreshSession()) return null;
       if (!accessToken) return null;
       try {
         const videos = await getChannelVideos(accessToken);
+        setAllVideos(videos || []);
         return videos;
       } catch (error: any) {
         console.error('Error fetching videos:', error);
@@ -49,14 +51,9 @@ export function VideosTab() {
       refetchOnReconnect: false,
       refetchInterval: false, // Disable periodic refetching
       retry: 1,
+      suspense: false,
     }
   );
-
-  const filteredVideos = React.useMemo(() => {
-    return videos?.filter(video =>
-      video.title.toLowerCase().includes(searchQuery.toLowerCase())
-    ) || [];
-  }, [videos, searchQuery]);
 
   if (!isAuthenticated) {
     return (
