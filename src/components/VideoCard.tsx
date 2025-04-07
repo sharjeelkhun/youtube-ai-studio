@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { VideoData } from '../types/youtube';
 import { Edit2, Wand2, ExternalLink, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -45,6 +45,7 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const { getKey } = useAPIKeyStore();
   const cohereKey = getKey('cohere');
   const queryClient = useQueryClient();
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { data: seoScore, isLoading } = useQuery(
     ['seo-score', video.id],
@@ -78,17 +79,21 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   }, [cohereKey, video.id]);
 
   const handleAnalyzeSEO = async () => {
+    if (isAnalyzing) return; // Prevent multiple clicks
+    setIsAnalyzing(true);
     try {
       const analysis = await analyzeSEO(video.title, video.description, video.tags);
       if (analysis) {
-        // Update store
         useSEOStore.getState().setScore(video.id, analysis);
-        // Update query data immediately
         queryClient.setQueryData(['seo-score', video.id], normalizeScore(analysis.score));
         toast.success('SEO Analysis completed!');
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to analyze SEO');
+      // Reset loading state if error occurs
+      queryClient.setQueryData(['seo-score', video.id], null);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -108,9 +113,9 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
           <div className="absolute top-2 right-2 bg-gray-100 rounded-lg px-3 py-1 text-sm text-gray-600">
             Configure AI in Settings
           </div>
-        ) : isLoading ? (
+        ) : isAnalyzing ? (
           <div className="absolute top-2 right-2">
-            <div className="animate-pulse">
+            <div className="animate-pulse backdrop-blur-sm p-1 rounded-full">
               <SEOScoreIndicator score={null} size="sm" />
             </div>
           </div>
@@ -121,12 +126,13 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
         ) : (
           <motion.button
             onClick={handleAnalyzeSEO}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="absolute top-2 right-2 bg-black/40 backdrop-blur-md border border-white/50 hover:bg-black/60 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1.5 shadow-lg"
+            disabled={isAnalyzing}
+            whileHover={!isAnalyzing ? { scale: 1.05 } : {}}
+            whileTap={!isAnalyzing ? { scale: 0.95 } : {}}
+            className="absolute top-2 right-2 bg-black/40 backdrop-blur-md border border-white/50 hover:bg-black/60 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1.5 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            Analyze SEO
+            {isAnalyzing ? 'Analyzing...' : 'Analyze SEO'}
           </motion.button>
         )}
       </div>
