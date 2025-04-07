@@ -11,16 +11,29 @@ import { useSEOStore } from '../store/seoStore';
 import { useQuery, useQueryClient } from 'react-query';
 import toast from 'react-hot-toast';
 
-// Constants for score calculation
+// Constants for processing
 const BATCH_SIZE = 5;
 const DELAY_BETWEEN_BATCHES = 3000;
+const MIN_RETRY_DELAY = 1000;
+const MAX_RETRY_DELAY = 10000;
+const MAX_RETRIES = 3;
+
+// Constants for score calculation
 const BASE_SCORES = {
-  TITLE_WEIGHT: 0.4,
-  DESC_WEIGHT: 0.4,
-  TAGS_WEIGHT: 0.2,
-  MIN_SCORE: 65, // Minimum base score
-  MAX_SCORE: 95  // Maximum base score
+  TITLE_WEIGHT: 0.35,
+  DESC_WEIGHT: 0.35,
+  TAGS_WEIGHT: 0.3,
+  MIN_SCORE: 30, // Lower minimum score
+  MAX_SCORE: 98  // More realistic maximum
 };
+
+// Add validation helper
+function validateResponse(response: any) {
+  return response && 
+         typeof response === 'object' &&
+         !Array.isArray(response) &&
+         Object.keys(response).length > 0;
+}
 
 interface VideoCardProps {
   video: VideoData;
@@ -37,71 +50,130 @@ export function VideoCard({ video, onEdit, onSuggestions }: VideoCardProps) {
   const batchIndex = React.useRef(Math.floor(Math.random() * BATCH_SIZE));
 
   const calculateVideoScore = (data: any): number => {
-    if (!data) return BASE_SCORES.MIN_SCORE;
+    if (!data) return 0; // Return 0 if no data
 
-    // Calculate weighted score based on content
-    let score = BASE_SCORES.MIN_SCORE;
+    let titleScore = 0;
+    let descriptionScore = 0;
+    let tagsScore = 0;
 
-    // Title factors
-    if (video.title.length >= 40 && video.title.length <= 70) score += 10;
-    if (/^[A-Z]/.test(video.title)) score += 5; // Starts with capital
-    if (video.title.includes('|') || video.title.includes('-') || video.title.includes(':')) score += 5;
+    // Title scoring (35%)
+    if (video.title) {
+      if (video.title.length >= 40 && video.title.length <= 70) titleScore += 35;
+      else if (video.title.length >= 20) titleScore += 20;
+      if (/^[A-Z]/.test(video.title)) titleScore += 15;
+      if (video.title.includes('|') || video.title.includes('-')) titleScore += 15;
+      if (/(how|why|what|when|top|best|\d+)/i.test(video.title)) titleScore += 15;
+      titleScore = Math.min(titleScore, 100);
+    }
 
-    // Description factors
-    if (video.description.length >= 100) score += 10;
-    if (video.description.includes('\n')) score += 5; // Has formatting
+    // Description scoring (35%)
+    if (video.description) {
+      if (video.description.length >= 250) descriptionScore += 40;
+      else if (video.description.length >= 100) descriptionScore += 20;
+      if (video.description.includes('\n\n')) descriptionScore += 20;
+      if (/https?:\/\/[^\s]+/.test(video.description)) descriptionScore += 20;
+      if (video.description.toLowerCase().includes('subscribe') || 
+          video.description.toLowerCase().includes('follow')) descriptionScore += 20;
+      descriptionScore = Math.min(descriptionScore, 100);
+    }
 
-    // Tags factors
-    if (video.tags.length >= 5) score += 5;
-    if (video.tags.length >= 10) score += 5;
+    // Tags scoring (30%)
+    if (video.tags && Array.isArray(video.tags)) {
+      if (video.tags.length >= 15) tagsScore += 40;
+      else if (video.tags.length >= 8) tagsScore += 25;
+      else if (video.tags.length >= 3) tagsScore += 15;
+      
+      // Check tag quality
+      const hasLongTags = video.tags.some(tag => tag.length > 15);
+      const hasShortTags = video.tags.some(tag => tag.length < 15);
+      if (hasLongTags && hasShortTags) tagsScore += 30;
+      
+      // Check for keyword variations
+      const keywordVariations = video.tags.filter(tag => 
+        video.title.toLowerCase().includes(tag.toLowerCase())
+      ).length;
+      if (keywordVariations >= 3) tagsScore += 30;
+      
+      tagsScore = Math.min(tagsScore, 100);
+    }
 
-    // Normalize score
-    return Math.min(Math.max(Math.round(score), BASE_SCORES.MIN_SCORE), BASE_SCORES.MAX_SCORE);
+    // Calculate weighted score
+    const finalScore = Math.round(
+      (titleScore * BASE_SCORES.TITLE_WEIGHT) +
+      (descriptionScore * BASE_SCORES.DESC_WEIGHT) +
+      (tagsScore * BASE_SCORES.TAGS_WEIGHT)
+    );
+
+    // Normalize between MIN and MAX scores
+    return Math.min(
+      Math.max(
+        Math.round(BASE_SCORES.MIN_SCORE + (finalScore * (BASE_SCORES.MAX_SCORE - BASE_SCORES.MIN_SCORE) / 100)),
+        BASE_SCORES.MIN_SCORE
+      ),
+      BASE_SCORES.MAX_SCORE
+    );
   };
 
-  const { data: seoScore, isLoading } = useQuery(
+  const { data: seoScore, isLoading, error } = useQuery(
     ['seo-score', video.id],
     async () => {
       if (!cohereKey) return null;
       
-      // Return stored score if valid
-      if (storedScore && typeof storedScore.score === 'number') {
-        return calculateVideoScore(storedScore);
-      }
-
       try {
-        // Add delay between batches
         const batchDelay = (batchIndex.current * DELAY_BETWEEN_BATCHES) / BATCH_SIZE;
         await new Promise(resolve => setTimeout(resolve, batchDelay));
-
+        
         const rawResponse = await throttledAnalyzeSEO(video.title, video.description, video.tags);
+        if (!rawResponse) return null;
+
         const parsedResponse = typeof rawResponse === 'string' ? 
           parseSEOAnalysis(rawResponse) : rawResponse;
 
-        if (parsedResponse) {
-          const score = calculateVideoScore(parsedResponse);
-          const analysisWithScore = {
+        if (!validateResponse(parsedResponse)) {
+          console.error('Invalid response structure:', parsedResponse);
+          return null;
+        }
+
+        const score = calculateVideoScore({
+          ...parsedResponse,
+          title: video.title,
+          description: video.description,
+          tags: video.tags
+        });
+
+        if (score > 0) {
+          useSEOStore.getState().setScore(video.id, {
             ...parsedResponse,
             score: score / 100
-          };
-          
-          useSEOStore.getState().setScore(video.id, analysisWithScore);
+          });
           return score;
         }
+        return null;
+
       } catch (error: any) {
         console.error('Error calculating SEO score:', error);
-        // Return default score on error
-        return BASE_SCORES.MIN_SCORE;
+        const isRateLimit = error.message?.includes('Rate limit');
+        
+        if (isRateLimit && retryCountRef.current < MAX_RETRIES) {
+          const delay = Math.min(MIN_RETRY_DELAY * Math.pow(2, retryCountRef.current), MAX_RETRY_DELAY);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          retryCountRef.current++;
+          throw error; // Trigger retry
+        }
+        
+        return null;
       }
-      return BASE_SCORES.MIN_SCORE;
     },
     {
-      enabled: !!cohereKey,
-      staleTime: 24 * 60 * 60 * 1000,
-      cacheTime: Infinity,
-      retry: 3,
-      retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 15000),
-      initialData: storedScore ? calculateVideoScore(storedScore) : undefined
+      enabled: !!cohereKey && !!video.title && video.title.length > 0,
+      staleTime: 12 * 60 * 60 * 1000,
+      cacheTime: 24 * 60 * 60 * 1000,
+      retry: MAX_RETRIES,
+      retryDelay: (attemptIndex) => Math.min(MIN_RETRY_DELAY * Math.pow(2, attemptIndex), MAX_RETRY_DELAY),
+      onError: (err) => {
+        console.error('Query error:', err);
+        retryCountRef.current = 0;
+      }
     }
   );
 

@@ -9,6 +9,7 @@ import { VideoEditModal } from './VideoEditModal';
 import { VideoSuggestionsModal } from './VideoSuggestionsModal';
 import { VideoData } from '../types/youtube';
 import { Loader2, Search } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export function VideosTab() {
   const { accessToken, isAuthenticated } = useAuthStore();
@@ -59,8 +60,9 @@ export function VideosTab() {
       cacheTime: 30 * 60 * 1000,
       retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
-      onError: (error) => {
-        toast.error('Failed to load videos. Retrying...');
+      onError: (error: any) => {
+        const message = error?.message || 'Failed to load videos';
+        toast.error(`${message}. Retrying...`);
         console.error('Videos fetch error:', error);
       }
     }
