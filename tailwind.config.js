@@ -65,6 +65,6 @@ export default {
   ],
   plugins: [
     require('tailwindcss-animate'),
-    require('@headlessui/tailwindcss')
+    require('@headlessui/tailwindcss')({ prefix: 'ui' })
   ],
 };

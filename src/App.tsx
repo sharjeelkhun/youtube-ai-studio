@@ -45,7 +45,7 @@ function App() {
     }
 
     // Session check interval with debounce
-    let sessionCheckTimeout: NodeJS.Timeout;
+    let sessionCheckTimeout: number;
     const checkSession = () => {
       logger.auth('Periodic session check started');
       const wasRefreshed = refreshSession();
