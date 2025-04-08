@@ -3,10 +3,10 @@ import { useAuthStore } from '../store/authStore';
 import { getChannelVideos } from '../services/youtube';
 import { getChannelAnalytics } from '../services/analytics';
 import { useQuery } from 'react-query';
-import { Loader2, ChevronDown } from 'lucide-react';
+import { Loader2, ChevronDown, BarChart, Eye, ThumbsUp, MessageCircle, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
-import { AreaChart, DonutChart, BarList } from '@tremor/react';
+import { AreaChart, DonutChart } from '@tremor/react';
 import { safeNumber, safeDate, transformAnalyticsItem } from '../utils/dataTransforms';
 
 interface AnalyticsData {
@@ -228,21 +228,24 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-8 space-y-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-              Analytics Overview
+            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-500 via-purple-500 to-blue-500">
+              Channel Analytics
             </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-1">Track and optimize your channel's performance</p>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">
+              Get insights into your channel's performance
+            </p>
           </div>
 
-          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700">
+          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0">
             <select
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
-              className="w-full appearance-none bg-transparent px-4 py-2 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="w-full appearance-none bg-transparent px-4 py-2 rounded-lg text-gray-900 dark:text-white focus:outline-none"
             >
               <option value="lifetime">Lifetime</option>
               <option value="1y">Last 1 Year</option>
@@ -254,45 +257,54 @@ export function Dashboard() {
           </Card>
         </div>
 
+        {/* Stats Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all duration-300">
+          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0 hover:shadow-xl transition-all duration-300">
             <CardHeader>
-              <CardTitle className="text-gray-700 dark:text-gray-100">Total Subscribers</CardTitle>
-              <div className="flex items-baseline space-x-2">
-                <span className="text-2xl font-bold text-gray-900 dark:text-white">
+              <CardTitle className="text-gray-600 dark:text-gray-400 text-sm font-medium">
+                Total Subscribers
+              </CardTitle>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-gray-900 dark:text-white">
                   {processedAnalytics?.totalSubscribers.toLocaleString() ?? '0'}
                 </span>
                 <MetricsChange value={metrics?.subscriberGrowth} />
               </div>
             </CardHeader>
           </Card>
-          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all duration-300">
+          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0 hover:shadow-xl transition-all duration-300">
             <CardHeader>
-              <CardTitle className="text-gray-700 dark:text-gray-100">Total Views</CardTitle>
-              <div className="flex items-baseline space-x-2">
-                <span className="text-2xl font-bold text-gray-900 dark:text-white">
+              <CardTitle className="text-gray-600 dark:text-gray-400 text-sm font-medium">
+                Total Views
+              </CardTitle>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-gray-900 dark:text-white">
                   {processedAnalytics?.totalViews.toLocaleString() ?? '0'}
                 </span>
                 <MetricsChange value={metrics?.viewsGrowth} />
               </div>
             </CardHeader>
           </Card>
-          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all duration-300">
+          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0 hover:shadow-xl transition-all duration-300">
             <CardHeader>
-              <CardTitle className="text-gray-700 dark:text-gray-100">Total Likes</CardTitle>
-              <div className="flex items-baseline space-x-2">
-                <span className="text-2xl font-bold text-gray-900 dark:text-white">
+              <CardTitle className="text-gray-600 dark:text-gray-400 text-sm font-medium">
+                Total Likes
+              </CardTitle>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-gray-900 dark:text-white">
                   {processedAnalytics?.totalLikes.toLocaleString() ?? '0'}
                 </span>
                 <MetricsChange value={metrics?.likesGrowth} />
               </div>
             </CardHeader>
           </Card>
-          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all duration-300">
+          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0 hover:shadow-xl transition-all duration-300">
             <CardHeader>
-              <CardTitle className="text-gray-700 dark:text-gray-100">Engagement Rate</CardTitle>
-              <div className="flex items-baseline space-x-2">
-                <span className="text-2xl font-bold text-gray-900 dark:text-white">
+              <CardTitle className="text-gray-600 dark:text-gray-400 text-sm font-medium">
+                Engagement Rate
+              </CardTitle>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-gray-900 dark:text-white">
                   {processedAnalytics?.engagementRate.toFixed(2) ?? '0.00'}%
                 </span>
                 <MetricsChange value={metrics?.engagementGrowth} />
@@ -301,58 +313,52 @@ export function Dashboard() {
           </Card>
         </div>
 
+        {/* Charts Grid */}
         <div className="grid gap-6 md:grid-cols-2">
-          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700 h-[400px]">
+          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0 hover:shadow-xl transition-all duration-300">
             <CardHeader>
-              <CardTitle className="text-gray-700 dark:text-gray-100">Views Over Time</CardTitle>
+              <CardTitle className="text-gray-600 dark:text-gray-400 text-sm font-medium">
+                Views Trend
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {preparedData.chartData.length > 0 ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                  className="mt-6"
-                >
-                  <AreaChart
-                    className="h-80 mt-4"
-                    data={preparedData.chartData}
-                    index="date"
-                    categories={["views", "likes"]}
-                    colors={["indigo", "green"]}
-                    valueFormatter={(value: number) => value.toLocaleString()}
-                    showLegend
-                    showGridLines={false}
-                    startEndOnly={true}
-                  />
-                </motion.div>
+                <AreaChart
+                  className="h-80 mt-4"
+                  data={preparedData.chartData}
+                  index="date"
+                  categories={["views", "likes"]}
+                  colors={["blue", "green"]}
+                  valueFormatter={(value: number) => value.toLocaleString()}
+                  showLegend
+                  showGridLines={false}
+                  startEndOnly={true}
+                  showAnimation={true}
+                />
               ) : (
                 <EmptyState message="No view data available" />
               )}
             </CardContent>
           </Card>
 
-          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700 h-[400px]">
+          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0 hover:shadow-xl transition-all duration-300">
             <CardHeader>
-              <CardTitle className="text-gray-700 dark:text-gray-100">Top Videos</CardTitle>
+              <CardTitle className="text-gray-600 dark:text-gray-400 text-sm font-medium">
+                Top Performing Videos
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {preparedData.topVideos.length > 0 ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                  className="mt-6"
-                >
-                  <DonutChart
-                    className="h-80 mt-4"
-                    data={preparedData.topVideos}
-                    category="value"
-                    index="name"
-                    valueFormatter={(value: number) => `${value.toLocaleString()} views`}
-                    colors={["slate", "violet", "indigo", "rose", "cyan"]}
-                  />
-                </motion.div>
+                <DonutChart
+                  className="h-80 mt-4"
+                  data={preparedData.topVideos}
+                  category="value"
+                  index="name"
+                  valueFormatter={(value: number) => `${value.toLocaleString()}`}
+                  colors={["blue", "indigo", "violet", "purple", "fuchsia"]}
+                  showAnimation={true}
+                  showTooltip={true}
+                />
               ) : (
                 <EmptyState message="No video data available" />
               )}
@@ -360,32 +366,55 @@ export function Dashboard() {
           </Card>
         </div>
 
-        <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700 h-[400px]">
+        {/* Performance Card */}
+        <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0 hover:shadow-xl transition-all duration-300">
           <CardHeader>
-            <CardTitle className="text-gray-700 dark:text-gray-100">Performance Metrics</CardTitle>
+            <CardTitle className="text-gray-600 dark:text-gray-400 text-sm font-medium">
+              Performance Overview
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <BarList
-              data={[
+            <div className="space-y-4">
+              { [
                 { 
-                  name: "Views", 
+                  name: "Total Views",
                   value: processedAnalytics?.totalViews ?? 0,
-                  color: "blue"
+                  color: "blue",
+                  icon: <Eye className="w-4 h-4" />
                 },
                 { 
-                  name: "Likes", 
+                  name: "Total Likes",
                   value: processedAnalytics?.totalLikes ?? 0,
-                  color: "emerald"
+                  color: "green",
+                  icon: <ThumbsUp className="w-4 h-4" />
                 },
                 { 
-                  name: "Comments", 
+                  name: "Comments",
                   value: preparedData.latestData?.comments ?? 0,
-                  color: "amber"
+                  color: "violet",
+                  icon: <MessageCircle className="w-4 h-4" />
+                },
+                {
+                  name: "Engagement Rate",
+                  value: processedAnalytics?.engagementRate ?? 0,
+                  color: "amber",
+                  icon: <Star className="w-4 h-4" />
                 }
-              ]}
-              valueFormatter={(value: number) => value.toLocaleString()}
-              className="mt-4 text-gray-600 dark:text-gray-300"
-            />
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50/50 dark:bg-gray-900/50">
+                  <div className={`p-2 rounded-lg bg-${item.color}-100 dark:bg-${item.color}-900/30 text-${item.color}-700 dark:text-${item.color}-400`}>
+                    {item.icon}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{item.name}</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {item.value.toLocaleString()}
+                      {item.name === "Engagement Rate" && "%"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -397,14 +426,25 @@ const MetricsChange = ({ value }: { value: number | null | undefined }) => {
   if (value == null) return null;
   const isPositive = value >= 0;
   return (
-    <span className={`text-sm font-medium ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-      {isPositive ? '+' : ''}{value}%
+    <span 
+      className={`
+        text-sm font-medium px-2.5 py-0.5 rounded-full
+        ${isPositive 
+          ? 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30' 
+          : 'text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30'
+        }
+      `}
+    >
+      {isPositive ? '+' : ''}{value.toFixed(1)}%
     </span>
   );
 };
 
 const EmptyState = ({ message }: { message: string }) => (
-  <div className="h-72 flex items-center justify-center text-gray-500 dark:text-gray-400">
+  <div className="h-72 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+    <div className="bg-gray-100 dark:bg-gray-700/30 p-3 rounded-full mb-3">
+      <BarChart className="w-6 h-6" />
+    </div>
     <p>{message}</p>
   </div>
 );
