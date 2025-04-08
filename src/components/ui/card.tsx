@@ -6,14 +6,16 @@ const Card = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement> & {
     gradient?: boolean
     hover?: boolean
+    glass?: boolean
   }
->(({ className, gradient, hover, ...props }, ref) => (
+>(({ className, gradient, hover, glass, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "rounded-xl border bg-card text-card-foreground shadow-sm transition-all duration-200",
-      gradient && "bg-gradient-to-br from-white to-gray-50/50",
-      hover && "hover:shadow-md hover:scale-[1.02]",
+      "rounded-xl border shadow-sm transition-all duration-300",
+      gradient && "gradient-border",
+      hover && "hover-scale",
+      glass && "glass-card",
       className
     )}
     {...props}
@@ -31,6 +33,22 @@ const CardHeader = React.forwardRef<
   />
 ))
 
-// ...add other card components (Title, Content, Footer)
+const CardTitle = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLProps<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h3
+    ref={ref}
+    className={cn("section-title text-lg font-semibold", className)}
+    {...props}
+  />
+))
 
-export { Card, CardHeader }
+const CardContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+))
+
+export { Card, CardHeader, CardTitle, CardContent }
