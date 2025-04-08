@@ -3,10 +3,12 @@ import { useAuthStore } from '../store/authStore';
 import { getChannelVideos } from '../services/youtube';
 import { getChannelAnalytics } from '../services/analytics';
 import { useQuery } from 'react-query';
-import { Loader2, ChevronDown, BarChart, Eye, ThumbsUp, MessageCircle, Star } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
-import { AreaChart, DonutChart } from '@tremor/react';
+import { Loader2, ChevronDown, Eye, ThumbsUp, Star, MessageCircle, BarChart } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Button } from "./ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { AreaChart } from '@tremor/react';
 import { safeNumber, safeDate, transformAnalyticsItem } from '../utils/dataTransforms';
 
 interface AnalyticsData {
@@ -228,196 +230,187 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-500 via-purple-500 to-blue-500">
-              Channel Analytics
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">
-              Get insights into your channel's performance
-            </p>
-          </div>
-
-          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0">
-            <select
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
-              className="w-full appearance-none bg-transparent px-4 py-2 rounded-lg text-gray-900 dark:text-white focus:outline-none"
-            >
-              <option value="lifetime">Lifetime</option>
-              <option value="1y">Last 1 Year</option>
-              <option value="6m">Last 6 Months</option>
-              <option value="3m">Last 3 Months</option>
-              <option value="1m">Last 1 Month</option>
-              <option value="1w">Last Week</option>
-            </select>
-          </Card>
+    <div className="flex-1 space-y-4 p-8 pt-6">
+      <div className="flex items-center justify-between space-y-2">
+        <h2 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h2>
+        <div className="flex items-center space-x-2">
+          <Button>Download</Button>
+          <select
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value)}
+            className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+          >
+            <option value="lifetime">Lifetime</option>
+            <option value="1y">Last 1 Year</option>
+            <option value="6m">Last 6 Months</option>
+            <option value="3m">Last 3 Months</option>
+            <option value="1m">Last 1 Month</option>
+            <option value="1w">Last Week</option>
+          </select>
         </div>
-
-        {/* Stats Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0 hover:shadow-xl transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="text-gray-600 dark:text-gray-400 text-sm font-medium">
-                Total Subscribers
-              </CardTitle>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {processedAnalytics?.totalSubscribers.toLocaleString() ?? '0'}
-                </span>
-                <MetricsChange value={metrics?.subscriberGrowth} />
-              </div>
-            </CardHeader>
-          </Card>
-          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0 hover:shadow-xl transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="text-gray-600 dark:text-gray-400 text-sm font-medium">
-                Total Views
-              </CardTitle>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {processedAnalytics?.totalViews.toLocaleString() ?? '0'}
-                </span>
-                <MetricsChange value={metrics?.viewsGrowth} />
-              </div>
-            </CardHeader>
-          </Card>
-          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0 hover:shadow-xl transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="text-gray-600 dark:text-gray-400 text-sm font-medium">
-                Total Likes
-              </CardTitle>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {processedAnalytics?.totalLikes.toLocaleString() ?? '0'}
-                </span>
-                <MetricsChange value={metrics?.likesGrowth} />
-              </div>
-            </CardHeader>
-          </Card>
-          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0 hover:shadow-xl transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="text-gray-600 dark:text-gray-400 text-sm font-medium">
-                Engagement Rate
-              </CardTitle>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {processedAnalytics?.engagementRate.toFixed(2) ?? '0.00'}%
-                </span>
-                <MetricsChange value={metrics?.engagementGrowth} />
-              </div>
-            </CardHeader>
-          </Card>
-        </div>
-
-        {/* Charts Grid */}
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0 hover:shadow-xl transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="text-gray-600 dark:text-gray-400 text-sm font-medium">
-                Views Trend
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {preparedData.chartData.length > 0 ? (
-                <AreaChart
-                  className="h-80 mt-4"
-                  data={preparedData.chartData}
-                  index="date"
-                  categories={["views", "likes"]}
-                  colors={["blue", "green"]}
-                  valueFormatter={(value: number) => value.toLocaleString()}
-                  showLegend
-                  showGridLines={false}
-                  startEndOnly={true}
-                  showAnimation={true}
-                />
-              ) : (
-                <EmptyState message="No view data available" />
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0 hover:shadow-xl transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="text-gray-600 dark:text-gray-400 text-sm font-medium">
-                Top Performing Videos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {preparedData.topVideos.length > 0 ? (
-                <DonutChart
-                  className="h-80 mt-4"
-                  data={preparedData.topVideos}
-                  category="value"
-                  index="name"
-                  valueFormatter={(value: number) => `${value.toLocaleString()}`}
-                  colors={["blue", "indigo", "violet", "purple", "fuchsia"]}
-                  showAnimation={true}
-                  showTooltip={true}
-                />
-              ) : (
-                <EmptyState message="No video data available" />
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Performance Card */}
-        <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur shadow-lg border-0 hover:shadow-xl transition-all duration-300">
-          <CardHeader>
-            <CardTitle className="text-gray-600 dark:text-gray-400 text-sm font-medium">
-              Performance Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              { [
-                { 
-                  name: "Total Views",
-                  value: processedAnalytics?.totalViews ?? 0,
-                  color: "blue",
-                  icon: <Eye className="w-4 h-4" />
-                },
-                { 
-                  name: "Total Likes",
-                  value: processedAnalytics?.totalLikes ?? 0,
-                  color: "green",
-                  icon: <ThumbsUp className="w-4 h-4" />
-                },
-                { 
-                  name: "Comments",
-                  value: preparedData.latestData?.comments ?? 0,
-                  color: "violet",
-                  icon: <MessageCircle className="w-4 h-4" />
-                },
-                {
-                  name: "Engagement Rate",
-                  value: processedAnalytics?.engagementRate ?? 0,
-                  color: "amber",
-                  icon: <Star className="w-4 h-4" />
-                }
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50/50 dark:bg-gray-900/50">
-                  <div className={`p-2 rounded-lg bg-${item.color}-100 dark:bg-${item.color}-900/30 text-${item.color}-700 dark:text-${item.color}-400`}>
-                    {item.icon}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{item.name}</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {item.value.toLocaleString()}
-                      {item.name === "Engagement Rate" && "%"}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        </TabsList>
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Subscribers</CardTitle>
+                <Eye className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {processedAnalytics?.totalSubscribers.toLocaleString() ?? '0'}
+                </div>
+                <MetricsChange value={metrics?.subscriberGrowth} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Views</CardTitle>
+                <Eye className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {processedAnalytics?.totalViews.toLocaleString() ?? '0'}
+                </div>
+                <MetricsChange value={metrics?.viewsGrowth} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Likes</CardTitle>
+                <ThumbsUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {processedAnalytics?.totalLikes.toLocaleString() ?? '0'}
+                </div>
+                <MetricsChange value={metrics?.likesGrowth} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Engagement Rate</CardTitle>
+                <Star className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {processedAnalytics?.engagementRate.toFixed(2) ?? '0.00'}%
+                </div>
+                <MetricsChange value={metrics?.engagementGrowth} />
+              </CardContent>
+            </Card>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+            <Card className="col-span-4">
+              <CardHeader>
+                <CardTitle>Views Over Time</CardTitle>
+              </CardHeader>
+              <CardContent className="pl-2">
+                {preparedData.chartData.length > 0 ? (
+                  <AreaChart
+                    className="h-[300px]"
+                    data={preparedData.chartData}
+                    index="date"
+                    categories={["views", "likes"]}
+                    colors={["blue", "rose"]}
+                    valueFormatter={(value: number) => value.toLocaleString()}
+                    showLegend
+                    showGridLines={false}
+                  />
+                ) : (
+                  <EmptyState message="No view data available" />
+                )}
+              </CardContent>
+            </Card>
+            <Card className="col-span-3">
+              <CardHeader>
+                <CardTitle>Top Videos</CardTitle>
+                <CardDescription>
+                  Your best performing content
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {preparedData.topVideos.length > 0 ? (
+                  <div className="space-y-8">
+                    {preparedData.topVideos.map((video, index) => (
+                      <div className="flex items-center" key={index}>
+                        <div className="ml-4 space-y-1">
+                          <p className="text-sm font-medium leading-none">{video.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {video.value.toLocaleString()} views
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState message="No video data available" />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        <TabsContent value="analytics" className="space-y-4">
+          <div className="grid gap-4 grid-cols-1">
+            <Card>
+              <CardHeader>
+                <CardTitle>Performance Metrics</CardTitle>
+                <CardDescription>
+                  Detailed analytics of your channel
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pl-2">
+                <div className="space-y-4">
+                  {[
+                    {
+                      name: "Total Views",
+                      value: processedAnalytics?.totalViews ?? 0,
+                      color: "blue",
+                      icon: <Eye className="w-4 h-4" />
+                    },
+                    {
+                      name: "Total Likes",
+                      value: processedAnalytics?.totalLikes ?? 0,
+                      color: "green",
+                      icon: <ThumbsUp className="w-4 h-4" />
+                    },
+                    {
+                      name: "Comments",
+                      value: preparedData.latestData?.comments ?? 0,
+                      color: "violet",
+                      icon: <MessageCircle className="w-4 h-4" />
+                    },
+                    {
+                      name: "Engagement Rate",
+                      value: processedAnalytics?.engagementRate ?? 0,
+                      color: "amber",
+                      icon: <Star className="w-4 h-4" />
+                    }
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50/50 dark:bg-gray-900/50">
+                      <div className={`p-2 rounded-lg bg-${item.color}-100 dark:bg-${item.color}-900/30 text-${item.color}-700 dark:text-${item.color}-400`}>
+                        {item.icon}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{item.name}</p>
+                        <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {item.value.toLocaleString()}
+                          {item.name === "Engagement Rate" && "%"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
