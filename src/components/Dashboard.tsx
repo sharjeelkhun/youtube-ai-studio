@@ -4,7 +4,7 @@ import { getChannelVideos } from '../services/youtube';
 import { getChannelAnalytics } from '../services/analytics';
 import { useQuery } from 'react-query';
 import { Loader2, ChevronDown } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, Title, AreaChart, DonutChart, BarList } from '@tremor/react';
 import { safeNumber, safeDate, transformAnalyticsItem } from '../utils/dataTransforms';
 
@@ -228,17 +228,19 @@ export function Dashboard() {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Analytics Overview</h1>
-          <p className="text-muted-foreground">Track and optimize your channel's performance</p>
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900">
+            Analytics Overview
+          </h1>
+          <p className="text-gray-600 mt-1">Track and optimize your channel's performance</p>
         </div>
 
-        <Card className="w-full md:w-auto">
+        <Card className="w-full md:w-auto bg-white/50 backdrop-blur-sm border border-gray-100">
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            className="w-full appearance-none bg-background px-4 py-2 rounded-tremor-default text-tremor-default focus:outline-none focus:ring-2 focus:ring-tremor-brand-emphasis"
+            className="w-full appearance-none bg-transparent px-4 py-2 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           >
             <option value="lifetime">Lifetime</option>
             <option value="1y">Last 1 Year</option>
@@ -250,82 +252,144 @@ export function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card decoration="top" decorationColor="indigo">
-          <Title>Total Subscribers</Title>
-          <div className="flex items-baseline space-x-2 mt-4">
-            <span className="text-tremor-metric font-semibold">
-              {processedAnalytics?.totalSubscribers.toLocaleString() ?? '0'}
-            </span>
-            <MetricsChange value={metrics?.subscriberGrowth} />
-          </div>
-        </Card>
-        <Card decoration="top" decorationColor="blue">
-          <Title>Total Views</Title>
-          <div className="flex items-baseline space-x-2 mt-4">
-            <span className="text-tremor-metric font-semibold">
-              {processedAnalytics?.totalViews.toLocaleString() ?? '0'}
-            </span>
-            <MetricsChange value={metrics?.viewsGrowth} />
-          </div>
-        </Card>
-        <Card decoration="top" decorationColor="green">
-          <Title>Total Likes</Title>
-          <div className="flex items-baseline space-x-2 mt-4">
-            <span className="text-tremor-metric font-semibold">
-              {processedAnalytics?.totalLikes.toLocaleString() ?? '0'}
-            </span>
-            <MetricsChange value={metrics?.likesGrowth} />
-          </div>
-        </Card>
-        <Card decoration="top" decorationColor="orange">
-          <Title>Engagement Rate</Title>
-          <div className="flex items-baseline space-x-2 mt-4">
-            <span className="text-tremor-metric font-semibold">
-              {processedAnalytics?.engagementRate.toFixed(2) ?? '0.00'}%
-            </span>
-            <MetricsChange value={metrics?.engagementGrowth} />
-          </div>
-        </Card>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card 
+            decoration="top" 
+            decorationColor="indigo"
+            className="bg-gradient-to-br from-white to-indigo-50/50 shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            <Title>Total Subscribers</Title>
+            <div className="flex items-baseline space-x-2 mt-4">
+              <span className="text-tremor-metric font-semibold">
+                {processedAnalytics?.totalSubscribers.toLocaleString() ?? '0'}
+              </span>
+              <MetricsChange value={metrics?.subscriberGrowth} />
+            </div>
+          </Card>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card 
+            decoration="top" 
+            decorationColor="blue"
+            className="bg-gradient-to-br from-white to-blue-50/50 shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            <Title>Total Views</Title>
+            <div className="flex items-baseline space-x-2 mt-4">
+              <span className="text-tremor-metric font-semibold">
+                {processedAnalytics?.totalViews.toLocaleString() ?? '0'}
+              </span>
+              <MetricsChange value={metrics?.viewsGrowth} />
+            </div>
+          </Card>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card 
+            decoration="top" 
+            decorationColor="green"
+            className="bg-gradient-to-br from-white to-green-50/50 shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            <Title>Total Likes</Title>
+            <div className="flex items-baseline space-x-2 mt-4">
+              <span className="text-tremor-metric font-semibold">
+                {processedAnalytics?.totalLikes.toLocaleString() ?? '0'}
+              </span>
+              <MetricsChange value={metrics?.likesGrowth} />
+            </div>
+          </Card>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card 
+            decoration="top" 
+            decorationColor="orange"
+            className="bg-gradient-to-br from-white to-orange-50/50 shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            <Title>Engagement Rate</Title>
+            <div className="flex items-baseline space-x-2 mt-4">
+              <span className="text-tremor-metric font-semibold">
+                {processedAnalytics?.engagementRate.toFixed(2) ?? '0.00'}%
+              </span>
+              <MetricsChange value={metrics?.engagementGrowth} />
+            </div>
+          </Card>
+        </motion.div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <Title>Views Over Time</Title>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="bg-white backdrop-blur-sm border border-gray-100/50 shadow-xl">
+          <Title className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+            Views Over Time
+          </Title>
           {preparedData.chartData.length > 0 ? (
-            <AreaChart
-              className="h-72 mt-4"
-              data={preparedData.chartData}
-              index="date"
-              categories={["views", "likes"]}
-              colors={["indigo", "green"]}
-              valueFormatter={(value: number) => value.toLocaleString()}
-              showLegend
-            />
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="mt-6"
+            >
+              <AreaChart
+                className="h-80 mt-4"
+                data={preparedData.chartData}
+                index="date"
+                categories={["views", "likes"]}
+                colors={["indigo", "green"]}
+                valueFormatter={(value: number) => value.toLocaleString()}
+                showLegend
+                showGridLines={false}
+                startEndOnly={true}
+              />
+            </motion.div>
           ) : (
             <EmptyState message="No view data available" />
           )}
         </Card>
 
-        <Card>
-          <Title>Top Videos</Title>
+        <Card className="bg-white backdrop-blur-sm border border-gray-100/50 shadow-xl">
+          <Title className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-pink-600">
+            Top Videos
+          </Title>
           {preparedData.topVideos.length > 0 ? (
-            <DonutChart
-              className="h-72 mt-4"
-              data={preparedData.topVideos}
-              category="value"
-              index="name"
-              valueFormatter={(value: number) => `${value.toLocaleString()} views`}
-              colors={["slate", "violet", "indigo", "rose", "cyan"]}
-            />
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="mt-6"
+            >
+              <DonutChart
+                className="h-80 mt-4"
+                data={preparedData.topVideos}
+                category="value"
+                index="name"
+                valueFormatter={(value: number) => `${value.toLocaleString()} views`}
+                colors={["slate", "violet", "indigo", "rose", "cyan"]}
+              />
+            </motion.div>
           ) : (
             <EmptyState message="No video data available" />
           )}
         </Card>
       </div>
 
-      <Card>
-        <Title>Performance Metrics</Title>
+      <Card className="bg-white backdrop-blur-sm border border-gray-100/50 shadow-xl">
+        <Title className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-600">
+          Performance Metrics
+        </Title>
         <BarList
           data={[
             { 
