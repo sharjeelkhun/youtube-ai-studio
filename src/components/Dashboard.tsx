@@ -200,49 +200,49 @@ export function Dashboard() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center justify-center h-[calc(100vh-64px)] bg-gradient-to-br from-gray-50 to-white"
+        className="flex flex-col items-center justify-center h-[calc(100vh-64px)] bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800"
       >
-        <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 mb-4">
+        <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 mb-4">
           Welcome to YouTube AI Studio
         </h1>
-        <p className="text-gray-600 text-lg mb-8">Sign in with your YouTube account to get started</p>
+        <p className="text-gray-600 dark:text-gray-300 text-lg mb-8">Sign in with your YouTube account to get started</p>
       </motion.div>
     );
   }
 
   if (isLoadingVideos || isLoadingAnalytics) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] bg-gradient-to-br from-gray-50 to-white">
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
         <Loader2 className="w-12 h-12 animate-spin text-red-600 mb-4" />
-        <p className="text-gray-600 animate-pulse">Loading your dashboard...</p>
+        <p className="text-gray-600 dark:text-gray-300 animate-pulse">Loading your dashboard...</p>
       </div>
     );
   }
 
   if (videosError || analyticsError) {
     return (
-      <div className="text-center text-red-500">
+      <div className="text-center text-red-500 dark:text-red-400">
         <p>Failed to load data. Please try again later.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-900 via-zinc-800 to-black text-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8 space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-500 via-purple-500 to-blue-500">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
               Analytics Overview
             </h1>
-            <p className="text-zinc-400 mt-1">Track and optimize your channel's performance</p>
+            <p className="text-gray-600 dark:text-gray-300 mt-1">Track and optimize your channel's performance</p>
           </div>
 
-          <Card className="bg-zinc-800/50 backdrop-blur border-zinc-700 w-full md:w-auto">
+          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700">
             <select
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
-              className="w-full appearance-none bg-transparent px-4 py-2 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+              className="w-full appearance-none bg-transparent px-4 py-2 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             >
               <option value="lifetime">Lifetime</option>
               <option value="1y">Last 1 Year</option>
@@ -255,44 +255,44 @@ export function Dashboard() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="bg-zinc-800/50 backdrop-blur border-zinc-700 hover:bg-zinc-800/70 transition-all duration-300">
+          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all duration-300">
             <CardHeader>
-              <CardTitle className="text-zinc-200">Total Subscribers</CardTitle>
+              <CardTitle className="text-gray-700 dark:text-gray-100">Total Subscribers</CardTitle>
               <div className="flex items-baseline space-x-2">
-                <span className="text-2xl font-bold text-white">
+                <span className="text-2xl font-bold text-gray-900 dark:text-white">
                   {processedAnalytics?.totalSubscribers.toLocaleString() ?? '0'}
                 </span>
                 <MetricsChange value={metrics?.subscriberGrowth} />
               </div>
             </CardHeader>
           </Card>
-          <Card className="bg-zinc-800/50 backdrop-blur border-zinc-700 hover:bg-zinc-800/70 transition-all duration-300">
+          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all duration-300">
             <CardHeader>
-              <CardTitle className="text-zinc-200">Total Views</CardTitle>
+              <CardTitle className="text-gray-700 dark:text-gray-100">Total Views</CardTitle>
               <div className="flex items-baseline space-x-2">
-                <span className="text-2xl font-bold text-white">
+                <span className="text-2xl font-bold text-gray-900 dark:text-white">
                   {processedAnalytics?.totalViews.toLocaleString() ?? '0'}
                 </span>
                 <MetricsChange value={metrics?.viewsGrowth} />
               </div>
             </CardHeader>
           </Card>
-          <Card className="bg-zinc-800/50 backdrop-blur border-zinc-700 hover:bg-zinc-800/70 transition-all duration-300">
+          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all duration-300">
             <CardHeader>
-              <CardTitle className="text-zinc-200">Total Likes</CardTitle>
+              <CardTitle className="text-gray-700 dark:text-gray-100">Total Likes</CardTitle>
               <div className="flex items-baseline space-x-2">
-                <span className="text-2xl font-bold text-white">
+                <span className="text-2xl font-bold text-gray-900 dark:text-white">
                   {processedAnalytics?.totalLikes.toLocaleString() ?? '0'}
                 </span>
                 <MetricsChange value={metrics?.likesGrowth} />
               </div>
             </CardHeader>
           </Card>
-          <Card className="bg-zinc-800/50 backdrop-blur border-zinc-700 hover:bg-zinc-800/70 transition-all duration-300">
+          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all duration-300">
             <CardHeader>
-              <CardTitle className="text-zinc-200">Engagement Rate</CardTitle>
+              <CardTitle className="text-gray-700 dark:text-gray-100">Engagement Rate</CardTitle>
               <div className="flex items-baseline space-x-2">
-                <span className="text-2xl font-bold text-white">
+                <span className="text-2xl font-bold text-gray-900 dark:text-white">
                   {processedAnalytics?.engagementRate.toFixed(2) ?? '0.00'}%
                 </span>
                 <MetricsChange value={metrics?.engagementGrowth} />
@@ -302,9 +302,9 @@ export function Dashboard() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <Card className="bg-zinc-800/50 backdrop-blur border-zinc-700 h-[400px]">
+          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700 h-[400px]">
             <CardHeader>
-              <CardTitle className="text-zinc-200">Views Over Time</CardTitle>
+              <CardTitle className="text-gray-700 dark:text-gray-100">Views Over Time</CardTitle>
             </CardHeader>
             <CardContent>
               {preparedData.chartData.length > 0 ? (
@@ -332,9 +332,9 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-zinc-800/50 backdrop-blur border-zinc-700 h-[400px]">
+          <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700 h-[400px]">
             <CardHeader>
-              <CardTitle className="text-zinc-200">Top Videos</CardTitle>
+              <CardTitle className="text-gray-700 dark:text-gray-100">Top Videos</CardTitle>
             </CardHeader>
             <CardContent>
               {preparedData.topVideos.length > 0 ? (
@@ -360,9 +360,9 @@ export function Dashboard() {
           </Card>
         </div>
 
-        <Card className="bg-zinc-800/50 backdrop-blur border-zinc-700 h-[400px]">
+        <Card className="bg-white/50 dark:bg-gray-800/50 backdrop-blur border-gray-200 dark:border-gray-700 h-[400px]">
           <CardHeader>
-            <CardTitle className="text-zinc-200">Performance Metrics</CardTitle>
+            <CardTitle className="text-gray-700 dark:text-gray-100">Performance Metrics</CardTitle>
           </CardHeader>
           <CardContent>
             <BarList
@@ -370,21 +370,21 @@ export function Dashboard() {
                 { 
                   name: "Views", 
                   value: processedAnalytics?.totalViews ?? 0,
-                  color: "indigo"
+                  color: "blue"
                 },
                 { 
                   name: "Likes", 
                   value: processedAnalytics?.totalLikes ?? 0,
-                  color: "green"
+                  color: "emerald"
                 },
                 { 
                   name: "Comments", 
                   value: preparedData.latestData?.comments ?? 0,
-                  color: "orange"
+                  color: "amber"
                 }
               ]}
               valueFormatter={(value: number) => value.toLocaleString()}
-              className="mt-4"
+              className="mt-4 text-gray-600 dark:text-gray-300"
             />
           </CardContent>
         </Card>
@@ -397,14 +397,14 @@ const MetricsChange = ({ value }: { value: number | null | undefined }) => {
   if (value == null) return null;
   const isPositive = value >= 0;
   return (
-    <span className={`text-sm font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+    <span className={`text-sm font-medium ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
       {isPositive ? '+' : ''}{value}%
     </span>
   );
 };
 
 const EmptyState = ({ message }: { message: string }) => (
-  <div className="h-72 flex items-center justify-center text-zinc-500">
+  <div className="h-72 flex items-center justify-center text-gray-500 dark:text-gray-400">
     <p>{message}</p>
   </div>
 );
